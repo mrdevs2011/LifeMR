@@ -118,6 +118,9 @@
     getFirestore, collection, addDoc, serverTimestamp,
     query, orderBy, limit, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import {
+    getAuth, signInAnonymously, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
   // Your web app's Firebase configuration
   const firebaseConfig = {
@@ -132,6 +135,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const auth = getAuth(app);
 
   // Analytics faqat https/real domain'da ishlaydi, file:// yoki localhost'da jim tarzda o'chadi
   analyticsSupported().then(ok => { if (ok) getAnalytics(app); }).catch(() => {});
@@ -141,6 +145,18 @@
   const inputEl = document.getElementById('holatInput');
   const btnEl = document.getElementById('submitBtn');
   const formStateEl = document.getElementById('formState');
+
+  // Firestore Rules "request.auth != null" talab qiladi — shuning uchun
+  // sahifa ochilishi bilan anonim token olamiz. Bu Firebase Console'da
+  // Authentication → Sign-in method → Anonymous YOQILGAN bo'lishini talab qiladi.
+  btnEl.disabled = true;
+  signInAnonymously(auth).catch(err => {
+    formStateEl.textContent = `auth xato: ${err.message}`;
+    formStateEl.className = 'state err';
+  });
+  onAuthStateChanged(auth, user => {
+    btnEl.disabled = !user;
+  });
 
   function esc(s) {
     const d = document.createElement('div');
