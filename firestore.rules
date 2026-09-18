@@ -5,7 +5,7 @@ service cloud.firestore {
 
     match /checkins/{docId} {
 
-      // O'QISH — hozircha ochiq, chunki checkins-site sahifasi
+      // O'QISH — hozircha ochiq, chunki MRstatus sahifasi
       // auth'siz real-time o'qiydi. Agar buni ham cheklamoqchi bo'lsang,
       // pastdagi "faqat auth" variantiga o'tkaz (izohda bor).
       allow read: if true;
