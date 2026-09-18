@@ -13,6 +13,7 @@
     --text: #e4e9e6;
     --text-dim: #6b7570;
     --red: #ef6a6a;
+    --green: #7dd68a;
   }
   * { box-sizing: border-box; }
   html, body {
@@ -33,6 +34,35 @@
     margin: 0 0 28px;
     letter-spacing: .02em;
   }
+  form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  input[type="text"] {
+    flex: 1;
+    background: #121514;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--text-dim); }
+  button {
+    background: #121514;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--green); color: var(--green); }
+  button:disabled { opacity: .5; cursor: default; }
   .entry {
     display: flex;
     gap: 16px;
@@ -58,24 +88,59 @@
     padding: 8px 0;
   }
   .state.err { color: var(--red); }
+  .state.ok { color: var(--green); }
   @media (max-width: 520px) {
     .entry { flex-direction: column; gap: 4px; }
     .ts { width: auto; }
+    form { flex-direction: column; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>checkins</h1>
+
+  <form id="checkinForm">
+    <input type="text" id="holatInput" placeholder="holatingni yoz..." autocomplete="off" required>
+    <button type="submit" id="submitBtn">yubor</button>
+  </form>
+
+  <div id="formState" class="state"></div>
   <div id="log">
     <div class="state">yuklanmoqda...</div>
   </div>
 </div>
 
-<script>
-  const PROJECT_ID = "mrabout";
-  const API_KEY = "AIzaSyAvvkcbKlbrplbh29m2MmVfiypvlGAEglg";
-  const URL_ = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/default/documents/checkins?pageSize=300&key=${API_KEY}`;
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAnalytics, isSupported as analyticsSupported } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
+  import {
+    getFirestore, collection, addDoc, serverTimestamp,
+    query, orderBy, limit, onSnapshot
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAvvkcbKlbrplbh29m2MmVfiypvlGAEglg",
+    authDomain: "mrabout.firebaseapp.com",
+    projectId: "mrabout",
+    storageBucket: "mrabout.firebasestorage.app",
+    messagingSenderId: "544262128836",
+    appId: "1:544262128836:web:f6c54edcaf50fa1c8eb591",
+    measurementId: "G-KLJNX0F23T"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Analytics faqat https/real domain'da ishlaydi, file:// yoki localhost'da jim tarzda o'chadi
+  analyticsSupported().then(ok => { if (ok) getAnalytics(app); }).catch(() => {});
+
+  const logEl = document.getElementById('log');
+  const formEl = document.getElementById('checkinForm');
+  const inputEl = document.getElementById('holatInput');
+  const btnEl = document.getElementById('submitBtn');
+  const formStateEl = document.getElementById('formState');
 
   function esc(s) {
     const d = document.createElement('div');
@@ -83,37 +148,56 @@
     return d.innerHTML;
   }
 
-  async function load() {
-    const logEl = document.getElementById('log');
-    try {
-      const res = await fetch(URL_);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const docs = data.documents || [];
-
-      docs.sort((a, b) => {
-        const ta = a.fields?.timestamp?.timestampValue || a.createTime || '';
-        const tb = b.fields?.timestamp?.timestampValue || b.createTime || '';
-        return tb.localeCompare(ta);
-      });
-
-      if (docs.length === 0) {
-        logEl.innerHTML = `<div class="state">hali yozuv yo'q.</div>`;
-        return;
-      }
-
-      logEl.innerHTML = docs.map(d => {
-        const f = d.fields || {};
-        const vaqt = f.vaqt?.stringValue || '';
-        const holat = f.holat?.stringValue || '';
-        return `<div class="entry"><div class="ts">${esc(vaqt)}</div><div class="holat">${esc(holat)}</div></div>`;
-      }).join('');
-    } catch (e) {
-      logEl.innerHTML = `<div class="state err">xato: ma'lumot yuklanmadi (${esc(e.message)})</div>`;
+  function render(docs) {
+    if (docs.length === 0) {
+      logEl.innerHTML = `<div class="state">hali yozuv yo'q.</div>`;
+      return;
     }
+    logEl.innerHTML = docs.map(d => {
+      const f = d.data();
+      return `<div class="entry"><div class="ts">${esc(f.vaqt || '')}</div><div class="holat">${esc(f.holat || '')}</div></div>`;
+    }).join('');
   }
 
-  load();
+  // Real-vaqtda tinglash — yangi yozuv kelsa avtomatik yangilanadi
+  const q = query(collection(db, "checkins"), orderBy("timestamp", "desc"), limit(300));
+  onSnapshot(q, snap => {
+    render(snap.docs);
+  }, err => {
+    logEl.innerHTML = `<div class="state err">xato: ma'lumot yuklanmadi (${esc(err.message)})</div>`;
+  });
+
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const holat = inputEl.value.trim();
+    if (!holat) return;
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const vaqt = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    btnEl.disabled = true;
+    formStateEl.textContent = '';
+    formStateEl.className = 'state';
+
+    try {
+      await addDoc(collection(db, "checkins"), {
+        vaqt,
+        holat,
+        timestamp: serverTimestamp(),
+      });
+      inputEl.value = '';
+      formStateEl.textContent = 'yuborildi ✓';
+      formStateEl.className = 'state ok';
+      setTimeout(() => { formStateEl.textContent = ''; }, 2000);
+    } catch (err) {
+      formStateEl.textContent = `xato: ${err.message}`;
+      formStateEl.className = 'state err';
+    } finally {
+      btnEl.disabled = false;
+      inputEl.focus();
+    }
+  });
 </script>
 </body>
 </html>
