@@ -3,18 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ai-checkin :: log</title>
+<title>Check-ins</title>
 <link rel="icon" href="data:,">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0e0c;
-    --bg-panel: #0f1512;
-    --border: #1e2a22;
-    --green: #4ade80;
-    --green-dim: #2f6b45;
-    --text: #d7e5dc;
-    --text-dim: #5c6f63;
+    --bg: #0b0d0c;
+    --border: #1f2422;
+    --text: #e4e9e6;
+    --text-dim: #6b7570;
     --red: #ef6a6a;
   }
   * { box-sizing: border-box; }
@@ -22,139 +19,63 @@
     margin: 0; padding: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
-    min-height: 100vh;
-  }
-  body {
-    background-image:
-      radial-gradient(circle at 15% 10%, rgba(74,222,128,0.04), transparent 40%),
-      repeating-linear-gradient(180deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
   }
   .wrap {
-    max-width: 760px;
+    max-width: 640px;
     margin: 0 auto;
-    padding: 48px 20px 80px;
+    padding: 56px 20px 80px;
   }
-  .titlebar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-bottom: none;
-    border-radius: 8px 8px 0 0;
-  }
-  .dot { width: 10px; height: 10px; border-radius: 50%; opacity: .55; }
-  .dot.r { background: #ff5f57; }
-  .dot.y { background: #febc2e; }
-  .dot.g { background: #28c840; }
-  .titlebar span {
-    margin-left: 8px;
+  h1 {
+    font-size: 15px;
+    font-weight: 500;
     color: var(--text-dim);
-    font-size: 13px;
-  }
-  .screen {
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    border-radius: 0 0 8px 8px;
-    padding: 22px 20px 28px;
-  }
-  .prompt-line {
-    color: var(--text-dim);
-    font-size: 14px;
-    margin-bottom: 4px;
-  }
-  .prompt-line .user { color: var(--green); }
-  .prompt-line .cmd { color: var(--text); }
-  .divider {
-    border: none;
-    border-top: 1px dashed var(--border);
-    margin: 18px 0;
+    margin: 0 0 28px;
+    letter-spacing: .02em;
   }
   .entry {
-    display: grid;
-    grid-template-columns: 168px 1fr;
-    gap: 14px;
-    padding: 9px 0;
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
     border-bottom: 1px solid var(--border);
     font-size: 14.5px;
-    line-height: 1.55;
+    line-height: 1.5;
   }
-  .entry:last-child { border-bottom: none; }
-  .entry .ts {
+  .entry:first-child { border-top: 1px solid var(--border); }
+  .ts {
     color: var(--text-dim);
     white-space: nowrap;
+    flex-shrink: 0;
+    width: 140px;
   }
-  .entry .holat {
+  .holat {
     color: var(--text);
     word-break: break-word;
   }
-  .entry .holat::before {
-    content: "> ";
-    color: var(--green);
-  }
-  .cursor-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 18px;
-    color: var(--green);
-    font-size: 14.5px;
-  }
-  .cursor {
-    display: inline-block;
-    width: 8px; height: 16px;
-    background: var(--green);
-    animation: blink 1s steps(1) infinite;
-  }
-  @keyframes blink { 50% { opacity: 0; } }
   .state {
     color: var(--text-dim);
     font-size: 14px;
-    padding: 6px 0;
+    padding: 8px 0;
   }
   .state.err { color: var(--red); }
-  .count {
-    color: var(--text-dim);
-    font-size: 12.5px;
-    margin-top: 26px;
-    text-align: right;
-  }
-  @media (max-width: 560px) {
-    .entry { grid-template-columns: 1fr; gap: 2px; }
+  @media (max-width: 520px) {
+    .entry { flex-direction: column; gap: 4px; }
+    .ts { width: auto; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
-
-  <div class="titlebar">
-    <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-    <span>muhamad@meabout: ~</span>
+  <h1>checkins</h1>
+  <div id="log">
+    <div class="state">yuklanmoqda...</div>
   </div>
-
-  <div class="screen">
-    <div class="prompt-line"><span class="user">muhamad@meabout</span><span class="cmd">:~$ tail -f checkins.log</span></div>
-    <hr class="divider">
-
-    <div id="log">
-      <div class="state">yuklanmoqda...</div>
-    </div>
-
-    <div class="cursor-row">
-      <span>$</span><span class="cursor"></span>
-    </div>
-
-    <div id="count" class="count"></div>
-  </div>
-
 </div>
 
 <script>
   const PROJECT_ID = "meabout";
   const API_KEY = "AIzaSyBAuBDFopPE9O1yvsZn2eJhENiHGq5CdBE";
-  const URL_ = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/default/documents/checkins?pageSize=300&orderBy=timestamp%20desc&key=${API_KEY}`;
+  const URL_ = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/default/documents/checkins?pageSize=300&key=${API_KEY}`;
 
   function esc(s) {
     const d = document.createElement('div');
@@ -164,30 +85,31 @@
 
   async function load() {
     const logEl = document.getElementById('log');
-    const countEl = document.getElementById('count');
     try {
       const res = await fetch(URL_);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const docs = data.documents || [];
 
+      docs.sort((a, b) => {
+        const ta = a.fields?.timestamp?.timestampValue || a.createTime || '';
+        const tb = b.fields?.timestamp?.timestampValue || b.createTime || '';
+        return tb.localeCompare(ta);
+      });
+
       if (docs.length === 0) {
         logEl.innerHTML = `<div class="state">hali yozuv yo'q.</div>`;
-        countEl.textContent = '';
         return;
       }
 
       logEl.innerHTML = docs.map(d => {
         const f = d.fields || {};
-        const vaqt = f.vaqt?.stringValue || '----------- --:--';
+        const vaqt = f.vaqt?.stringValue || '';
         const holat = f.holat?.stringValue || '';
         return `<div class="entry"><div class="ts">${esc(vaqt)}</div><div class="holat">${esc(holat)}</div></div>`;
       }).join('');
-
-      countEl.textContent = `${docs.length} ta yozuv`;
     } catch (e) {
       logEl.innerHTML = `<div class="state err">xato: ma'lumot yuklanmadi (${esc(e.message)})</div>`;
-      countEl.textContent = '';
     }
   }
 
