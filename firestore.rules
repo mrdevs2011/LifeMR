@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /checkins/{docId} {
+
+      // O'QISH — hozircha ochiq, chunki checkins-site sahifasi
+      // auth'siz real-time o'qiydi. Agar buni ham cheklamoqchi bo'lsang,
+      // pastdagi "faqat auth" variantiga o'tkaz (izohda bor).
+      allow read: if true;
+
+      // YOZISH — faqat auth qilingan (anonim bo'lsa ham) foydalanuvchi,
+      // va faqat quyidagi qat'iy validatsiyadan o'tgan hujjat.
+      allow create: if request.auth != null
+                    && isValidCheckin(request.resource.data);
+
+      // Hech kim eski yozuvni o'zgartira olmaydi yoki o'chira olmaydi —
+      // check-in log immutable bo'lishi kerak (audit trail mantiqi).
+      allow update, delete: if false;
+    }
+
+    // Parol hash'i shu yerda saqlanadi. O'QISH ochiq — chunki brauzer
+    // client-side solishtirish uchun hash'ni ko'rishi kerak. Bu degani:
+    // hash oflayn brute-force qilinishi NAZARIY mumkin. Chinakam
+    // xavfsizlik kerak bo'lsa — Firebase Auth (email/parol) ga o't.
+    match /config/access {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.data.keys().hasOnly(['hash'])
+                   && request.resource.data.hash is string
+                   && request.resource.data.hash.size() == 64;
+    }
+
+    // Boshqa har qanday collection — default deny.
+    // Kimdir boshqa nom bilan collection yaratib chiqindi tashlay olmasin.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+function isValidCheckin(data) {
+  return data.keys().hasOnly(['vaqt', 'holat', 'timestamp'])
+    && data.vaqt is string
+    && data.vaqt.size() > 0
+    && data.vaqt.size() < 30
+    && data.holat is string
+    && data.holat.size() > 0
+    && data.holat.size() < 500
+    && data.timestamp is timestamp;
+}
