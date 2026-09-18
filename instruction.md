@@ -15,9 +15,9 @@ havolani och.
 Foydalanuvchi bergan format namunalari:
 
 ```
-https://meabout.vercel.app/api/download-status/1/last7?pass=<PAROL>
-https://meabout.vercel.app/api/download-status/1/last30?pass=<PAROL>
-https://meabout.vercel.app/api/download-status/1/2026-09-18fri?pass=<PAROL>
+https://meabout.vercel.app/api/download-status/1/last7?pass=mr07110.github.io
+https://meabout.vercel.app/api/download-status/1/last30?pass=mr07110.github.io
+https://meabout.vercel.app/api/download-status/1/2026-09-18fri?pass=mr07110.github.io
 ```
 
 - Yo'lning `1` qismi ixtiyoriy raqam (kesh uchun kerak emas, server
