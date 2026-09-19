@@ -5,19 +5,12 @@ Preferences (shaxsiy ko'rsatmalar) bo'limiga kiritiladi. Shundan keyin
 har bir yangi suhbatda avtomatik ishlaydi — foydalanuvchi URL yoki
 buyruq yozishi shart emas.
 
-Status URL shabloni (asosiy qism doimiy, faqat kesh-raqam `{TS}` har
-safar yangilanadi — shuning uchun javob hech qachon keshlanib
-qolmaydi):
+Status URL shabloni (hech qachon o'zgarmaydi — cache-buster kerak
+emas, chunki server har doim `no-store` header bilan javob beradi):
 
 ```
-https://mrstatus.vercel.app/api/download-status/{TS}/last7?pass=mr07110.github.io
+https://mrstatus.vercel.app/api/download-status?filter=last7&pass=mr07110.github.io
 ```
-
-`{TS}` — joriy sana-vaqt, `YYYYMMDDHHmmss` formatida (masalan,
-2026-yil 9-sentabr, soat 06:19:25 bo'lsa: `20260909061925`). Har
-safar URL ochishdan oldin joriy vaqtni shu formatda hisoblab, `{TS}`
-o'rniga qo'y. URL'ning qolgan qismi (`/last7?pass=mr07110.github.io`)
-hech qachon o'zgarmaydi.
 
 ---
 
@@ -33,20 +26,21 @@ hech qachon o'zgarmaydi.
   o'z-o'zidan ko'tarib chiqarma — faqat kerak bo'lganda yoki so'ralganda
   ishlat.
 - Suhbat davomida foydalanuvchi holatini alohida so'rasa ("ahvolim
-  qanday", "statusni ko'rsat" va h.k.), yana shu shablon bo'yicha
-  yangi `{TS}` bilan URL tuz va och.
-- URL'ning faqat `{TS}` qismini joriy vaqt bilan almashtir, boshqa
-  hech narsani o'zgartirma, boshqa yo'l yoki filter yasama, qidirma.
+  qanday", "statusni ko'rsat" va h.k.), yana shu URL'ni och.
+- URL'ni o'zgartirma, boshqa yo'l yoki filter yasama, qidirma.
 
 ---
 
 ## 2. Statusni olish
 
-- Yo'lning `1` qismi ixtiyoriy raqam (kesh uchun kerak emas, server
-  `no-store` qaytaradi), o'zgartirish shart emas.
-- Bo'sh javob (`{}`) yoki `401` kelsa, URL yoki parol noto'g'ri
-  bo'lishi mumkin — foydalanuvchiga qisqa ayt, boshqa URL'ni o'zing
-  yasab sinama.
+- URL'dagi `filter=last7` — oxirgi 7 kunlik yozuvlarni beradi. Boshqa
+  qiymatlar ham mumkin: `filter=last30` (oxirgi 30 kun) yoki
+  `filter=2026-09-18fri` (muayyan kun, format: `YYYY-MM-DDddd`).
+  `filter` parametrini butunlay olib tashlasa, barcha ma'lumot
+  (filtrsiz) qaytadi.
+- Bo'sh javob (`{}`) yoki `401` kelsa, parol noto'g'ri bo'lishi
+  mumkin — foydalanuvchiga qisqa ayt, boshqa URL'ni o'zing yasab
+  sinama.
 - Fetch bloklansa yoki xato bersa, bekor qil va foydalanuvchiga
   "statusni ocha olmadim, javobni copy-paste qilib bera olasizmi?" de.
 
