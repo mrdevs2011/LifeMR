@@ -5,12 +5,21 @@ Preferences (shaxsiy ko'rsatmalar) bo'limiga kiritiladi. Shundan keyin
 har bir yangi suhbatda avtomatik ishlaydi — foydalanuvchi URL yoki
 buyruq yozishi shart emas.
 
-Status URL shabloni (hech qachon o'zgarmaydi — cache-buster kerak
-emas, chunki server har doim `no-store` header bilan javob beradi):
+Status URL shabloni (asosiy qism doimiy, faqat `{TS}` har safar
+yangilanadi — bu server keshi uchun emas, balki AI'ning o'z fetch
+vositasi bir xil URL'ni suhbat ichida qayta so'raganda eski javobni
+qaytarib qo'yishining oldini olish uchun):
 
 ```
-https://mrstatus.vercel.app/api/download-status?filter=last7&pass=mr07110.github.io
+https://mrstatus.vercel.app/api/download-status?filter=last7&pass=mr07110.github.io&ts={TS}
 ```
+
+`{TS}` — joriy sana-vaqt, `YYYYMMDDHHmmss` formatida (masalan,
+2026-yil 19-sentabr, soat 07:15:00 bo'lsa: `20260919071500`). Har
+safar URL ochishdan oldin joriy vaqtni shu formatda hisoblab, `{TS}`
+o'rniga qo'y. `ts` parametrini server tekshirmaydi — u faqat URL'ni
+har safar noyob qilish uchun. URL'ning qolgan qismi hech qachon
+o'zgarmaydi.
 
 ---
 
@@ -26,8 +35,12 @@ https://mrstatus.vercel.app/api/download-status?filter=last7&pass=mr07110.github
   o'z-o'zidan ko'tarib chiqarma — faqat kerak bo'lganda yoki so'ralganda
   ishlat.
 - Suhbat davomida foydalanuvchi holatini alohida so'rasa ("ahvolim
-  qanday", "statusni ko'rsat" va h.k.), yana shu URL'ni och.
-- URL'ni o'zgartirma, boshqa yo'l yoki filter yasama, qidirma.
+  qanday", "statusni ko'rsat" va h.k.), yana shu shablon bo'yicha
+  yangi `{TS}` bilan URL tuz va och — hatto shu suhbatda oldin bir
+  marta ochgan bo'lsang ham, HAR SAFAR yangi `{TS}` bilan qayta fetch
+  qil, avvalgi natijaga tayanma.
+- URL'ning faqat `{TS}` qismini joriy vaqt bilan almashtir, boshqa
+  hech narsani o'zgartirma, boshqa yo'l yoki filter yasama, qidirma.
 
 ---
 
