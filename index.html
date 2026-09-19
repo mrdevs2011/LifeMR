@@ -2,164 +2,318 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MRstatus</title>
 <meta name="application-name" content="MRstatus">
 <meta name="apple-mobile-web-app-title" content="MRstatus">
-<meta name="theme-color" content="#0b0d0c">
+<meta name="theme-color" content="#0a0c0b">
 <meta name="description" content="MRstatus">
 <link rel="icon" type="image/svg+xml" href="/logo/logo.svg">
 <link rel="alternate icon" type="image/x-icon" sizes="48x48" href="/logo/logo.ico">
 <link rel="apple-touch-icon" href="/logo/logo-180.png">
 <link rel="manifest" href="/logo/site.webmanifest">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0b0d0c;
-    --border: #1f2422;
-    --text: #e4e9e6;
-    --text-dim: #6b7570;
-    --red: #ef6a6a;
-    --green: #7dd68a;
+    --bg: #0a0c0b;
+    --panel: #101413;
+    --border: #202826;
+    --border-soft: #171c1a;
+    --text: #eef2ef;
+    --text-dim: #7c8883;
+    --text-faint: #4c5652;
+    --accent: #7fe0a0;
+    --accent-dim: rgba(127, 224, 160, .1);
+    --red: #f2726f;
+    --red-dim: rgba(242, 114, 111, .1);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   }
+
   * { box-sizing: border-box; }
+
+  html {
+    /* fluid type scale — ekran kengligiga qarab silliq o'sadi/kichrayadi,
+       qat'iy breakpoint'larga tayanmasdan har qanday device'da tekis ko'rinadi */
+    font-size: clamp(14px, 3.6vw, 16px);
+  }
+
   html, body {
     margin: 0; padding: 0;
+    min-height: 100%;
     background: var(--bg);
     color: var(--text);
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: var(--mono);
+    -webkit-text-size-adjust: 100%;
   }
-  .wrap {
-    max-width: 640px;
+
+  body {
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(127, 224, 160, .05), transparent 60%),
+      var(--bg);
+  }
+
+  ::selection { background: var(--accent-dim); color: var(--accent); }
+
+  a, button, input, .day-row { -webkit-tap-highlight-color: transparent; }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .page {
+    max-width: 680px;
     margin: 0 auto;
-    padding: 56px 20px 80px;
+    padding: clamp(20px, 6vw, 56px) clamp(14px, 4vw, 20px) clamp(40px, 8vw, 72px);
   }
-  h1 {
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .6);
+    padding: clamp(16px, 4vw, 26px);
+    overflow: hidden;
+  }
+
+  .topbar {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 17px;
+    margin-bottom: clamp(18px, 4vw, 26px);
+  }
+
+  .badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: var(--text-dim);
+    background: var(--bg);
+  }
+
+  h1 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 1.0625rem;
     font-weight: 700;
     color: var(--text);
-    margin: 0 0 28px;
-    letter-spacing: .02em;
+    margin: 0;
+    letter-spacing: .01em;
   }
-  h1 img {
-    width: 28px;
-    height: 28px;
-    display: block;
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 var(--accent-dim);
+    flex-shrink: 0;
+    animation: pulse 2.4s ease-out infinite;
   }
+
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(127, 224, 160, .35); }
+    70%  { box-shadow: 0 0 0 7px rgba(127, 224, 160, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(127, 224, 160, 0); }
+  }
+
   form {
     display: flex;
-    gap: 10px;
-    margin-bottom: 32px;
+    gap: 8px;
+    margin-bottom: 6px;
   }
+
   input[type="text"] {
     flex: 1;
-    background: #121514;
+    min-width: 0;
+    background: var(--bg);
     border: 1px solid var(--border);
     color: var(--text);
     font-family: inherit;
-    font-size: 14px;
-    padding: 10px 12px;
-    border-radius: 4px;
+    font-size: .9rem;
+    padding: 11px 13px;
+    border-radius: var(--radius-sm);
     outline: none;
+    transition: border-color .15s ease;
   }
-  input[type="text"]:focus { border-color: var(--text-dim); }
+  input[type="text"]::placeholder { color: var(--text-faint); }
+  input[type="text"]:hover { border-color: var(--text-faint); }
+  input[type="text"]:focus { border-color: var(--accent); }
+
   button {
-    background: #121514;
-    border: 1px solid var(--border);
-    color: var(--text);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    color: #08130c;
     font-family: inherit;
-    font-size: 14px;
-    padding: 10px 16px;
-    border-radius: 4px;
+    font-size: .9rem;
+    font-weight: 700;
+    padding: 11px 18px;
+    border-radius: var(--radius-sm);
     cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity .15s ease, transform .08s ease;
   }
-  button:hover { border-color: var(--green); color: var(--green); }
-  button:disabled { opacity: .5; cursor: default; }
+  button:hover { opacity: .88; }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .4; cursor: default; transform: none; }
+
+  #gate button, #gate input { width: 100%; }
+  #gate button {
+    background: var(--bg);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  #gate button:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+  .divider {
+    height: 1px;
+    background: var(--border-soft);
+    margin: 18px 0 4px;
+  }
+
+  .day { border-bottom: 1px solid var(--border-soft); }
+  .day:last-child { border-bottom: none; }
+
+  .day-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 4px;
+    margin: 0 -4px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color .15s ease;
+  }
+  .day-row:hover { background: rgba(255, 255, 255, .025); }
+  .day-row:active { background: rgba(255, 255, 255, .045); }
+
+  .day-date {
+    color: var(--text);
+    font-size: .9rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+    white-space: nowrap;
+  }
+  .day.open .day-date { color: var(--accent); }
+
+  .day-count {
+    color: var(--text-dim);
+    font-size: .8rem;
+    flex: 1;
+  }
+
+  .day-arrow {
+    color: var(--text-faint);
+    font-size: .85rem;
+    transition: transform .25s ease, color .15s ease;
+    flex-shrink: 0;
+  }
+  .day.open .day-arrow { transform: rotate(90deg); color: var(--accent); }
+
+  .day-entries {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    padding-bottom: 6px;
+    transition: max-height .32s cubic-bezier(.4, 0, .2, 1), opacity .28s ease;
+  }
+  .day.open .day-entries { opacity: 1; }
+
   .entry {
     display: flex;
-    gap: 16px;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--border);
-    font-size: 14.5px;
+    gap: 14px;
+    padding: 9px 0 9px 14px;
+    border-left: 2px solid var(--border);
+    margin-left: 3px;
+    font-size: .875rem;
     line-height: 1.5;
   }
-  .entry:first-child { border-top: 1px solid var(--border); }
+
   .ts {
-    color: var(--text-dim);
+    color: var(--text-faint);
     white-space: nowrap;
     flex-shrink: 0;
-    width: 140px;
+    width: 48px;
+    font-variant-numeric: tabular-nums;
   }
+
   .holat {
     color: var(--text);
     word-break: break-word;
+    min-width: 0;
   }
+
   .state {
     color: var(--text-dim);
-    font-size: 14px;
-    padding: 8px 0;
+    font-size: .82rem;
+    padding: 8px 4px;
   }
   .state.err { color: var(--red); }
-  .state.ok { color: var(--green); }
+  .state.ok { color: var(--accent); }
+  .hint { font-size: .75rem; color: var(--text-faint); padding-top: 12px; }
+
   #gate {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    max-width: 320px;
-    margin: 80px auto;
+    gap: 10px;
   }
-  #gate input {
-    background: #121514;
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 14px;
-    padding: 10px 12px;
-    border-radius: 4px;
-    outline: none;
-  }
-  #gate input:focus { border-color: var(--text-dim); }
-  #gate button {
-    background: #121514;
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: inherit;
-    font-size: 14px;
-    padding: 10px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-  }
-  #gate button:hover { border-color: var(--green); color: var(--green); }
+
   #content { display: none; }
-  @media (max-width: 520px) {
-    .entry { flex-direction: column; gap: 4px; }
+
+  @media (max-width: 420px) {
+    .entry { flex-direction: column; gap: 3px; padding-left: 12px; }
     .ts { width: auto; }
-    form { flex-direction: column; }
+    .day-count { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      transition-duration: .001ms !important;
+    }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1><img src="/logo/logo.svg" alt="" width="28" height="28"><span>MRstatus</span></h1>
+<div class="page">
+  <div class="card">
+    <div class="topbar">
+      <div class="badge">MR</div>
+      <h1><span>MRstatus</span><span class="live-dot" aria-hidden="true"></span></h1>
+    </div>
 
-  <div id="gate">
-    <div class="state" id="gateState">tekshirilmoqda...</div>
-    <input type="password" id="passInput" placeholder="parol" autocomplete="off" style="display:none">
-    <button id="passBtn" style="display:none">kir</button>
-  </div>
+    <div id="gate">
+      <div class="state" id="gateState">tekshirilmoqda...</div>
+      <input type="password" id="passInput" placeholder="parol" autocomplete="off" style="display:none">
+      <button id="passBtn" style="display:none">kir</button>
+    </div>
 
-  <div id="content">
-    <form id="statusForm">
-      <input type="text" id="holatInput" placeholder="holatingni yoz..." autocomplete="off" required>
-      <button type="submit" id="submitBtn">yubor</button>
-    </form>
+    <div id="content">
+      <form id="statusForm">
+        <input type="text" id="holatInput" placeholder="holatingni yoz..." autocomplete="off" required>
+        <button type="submit" id="submitBtn">yubor</button>
+      </form>
 
-    <div id="formState" class="state"></div>
-    <div id="log">
-      <div class="state">yuklanmoqda...</div>
+      <div id="formState" class="state"></div>
+      <div class="divider"></div>
+      <div id="log">
+        <div class="state">yuklanmoqda...</div>
+      </div>
+      <div class="state hint">kun ustiga bosilsa, o'sha kun statuslari ochiladi</div>
     </div>
   </div>
 </div>
@@ -216,16 +370,119 @@
     return d.innerHTML;
   }
 
+  // Bir vaqtda faqat bitta kun ochiq turadi (accordion).
+  // openSana = hozir ochiq turgan kunning sanasi, yoki hech qaysi ochiq bo'lmasa null.
+  let openSana = null;
+  let dayObserver = null;
+
+  // Kunni animatsiya bilan ochish: max-height ni 0 dan haqiqiy balandlikkacha o'tkazamiz —
+  // shunda transition CSS'dagi "smooth" effekt beradi, sakrash bo'lmaydi.
+  function openDay(dayEl) {
+    const entries = dayEl.querySelector('.day-entries');
+    dayEl.classList.add('open');
+    entries.style.maxHeight = entries.scrollHeight + 'px';
+  }
+
+  // Kunni animatsiya bilan yopish.
+  function closeDay(dayEl) {
+    const entries = dayEl.querySelector('.day-entries');
+    // avval hozirgi balandlikni "qattiq" raqam qilib qo'yamiz (auto emas),
+    // shundagina 0 ga transition silliq ishlaydi
+    entries.style.maxHeight = entries.scrollHeight + 'px';
+    requestAnimationFrame(() => {
+      entries.style.maxHeight = '0px';
+      dayEl.classList.remove('open');
+    });
+  }
+
+  // Ochiq turgan kun scroll bilan ekrandan butunlay chiqib ketsa — avtomatik yopamiz.
+  // IntersectionObserver = elementning ekranda ko'rinib-ko'rinmasligini kuzatuvchi vosita.
+  function setupDayObserver() {
+    if (dayObserver) dayObserver.disconnect();
+    dayObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const sana = entry.target.dataset.sana;
+        if (!entry.isIntersecting && sana === openSana) {
+          closeDay(entry.target);
+          openSana = null;
+        }
+      });
+    }, { threshold: 0 });
+    logEl.querySelectorAll('.day').forEach(el => dayObserver.observe(el));
+  }
+
   function render(docs) {
     if (docs.length === 0) {
       logEl.innerHTML = `<div class="state">hali yozuv yo'q.</div>`;
       return;
     }
-    logEl.innerHTML = docs.map(d => {
+
+    // 1) yozuvlarni sana bo'yicha guruhlaymiz
+    const kunlar = new Map(); // sana -> [{soat, holat}]
+    for (const d of docs) {
       const f = d.data();
-      return `<div class="entry"><div class="ts">${esc(f.vaqt || '')}</div><div class="holat">${esc(f.holat || '')}</div></div>`;
-    }).join('');
+      const vaqt = f.vaqt || '';
+      const [sana, soat] = vaqt.includes(' ') ? vaqt.split(' ') : [vaqt, ''];
+      if (!kunlar.has(sana)) kunlar.set(sana, []);
+      kunlar.get(sana).push({ soat, holat: f.holat || '' });
+    }
+
+    // 2) har bir kun uchun yopiq qator + ichida (yashirin) yozuvlar ro'yxati
+    let html = '';
+    for (const [sana, yozuvlar] of kunlar) {
+      html += `<div class="day" data-sana="${esc(sana)}">`;
+      html += `<div class="day-row">`;
+      html += `<div class="day-date">${esc(sana)}</div>`;
+      html += `<div class="day-count">${yozuvlar.length} ta status</div>`;
+      html += `<div class="day-arrow">›</div>`;
+      html += `</div>`;
+      html += `<div class="day-entries">`;
+      for (const y of yozuvlar) {
+        html += `<div class="entry"><div class="ts">${esc(y.soat)}</div><div class="holat">${esc(y.holat)}</div></div>`;
+      }
+      html += `</div></div>`;
+    }
+    logEl.innerHTML = html;
+
+    // Yangi status kelib qayta chizilganda, agar biror kun ochiq bo'lsa —
+    // uni animatsiyasiz, darhol ochiq holatda tiklaymiz (jump/glitch bo'lmasin uchun).
+    if (openSana) {
+      const dayEl = logEl.querySelector(`.day[data-sana="${CSS.escape(openSana)}"]`);
+      if (dayEl) {
+        const entries = dayEl.querySelector('.day-entries');
+        entries.style.transition = 'none';
+        dayEl.classList.add('open');
+        entries.style.maxHeight = entries.scrollHeight + 'px';
+        void entries.offsetHeight; // reflow'ni majburlab, transitionni xavfsiz qaytaramiz
+        entries.style.transition = '';
+      } else {
+        openSana = null;
+      }
+    }
+
+    setupDayObserver();
   }
+
+  // Qator bosilganda — bitta kun ochiladi, oldin ochiq turgani bo'lsa avtomatik yopiladi.
+  logEl.addEventListener('click', (e) => {
+    const row = e.target.closest('.day-row');
+    if (!row) return;
+    const dayEl = row.closest('.day');
+    const sana = dayEl.dataset.sana;
+
+    if (openSana === sana) {
+      closeDay(dayEl);
+      openSana = null;
+      return;
+    }
+
+    if (openSana) {
+      const prevEl = logEl.querySelector(`.day[data-sana="${CSS.escape(openSana)}"]`);
+      if (prevEl) closeDay(prevEl);
+    }
+    openDay(dayEl);
+    openSana = sana;
+  });
 
   function unlockApp() {
     gateEl.style.display = 'none';
