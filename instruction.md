@@ -5,18 +5,18 @@ Preferences (shaxsiy ko'rsatmalar) bo'limiga kiritiladi. Shundan keyin
 har bir yangi suhbatda avtomatik ishlaydi — foydalanuvchi URL yoki
 buyruq yozishi shart emas.
 
-Status URL shabloni (asosiy qism doimiy, faqat kesh-raqam har safar yangilanadi):
+Status URL shabloni (asosiy qism doimiy, faqat kesh-raqam `{TS}` har
+safar yangilanadi — shuning uchun javob hech qachon keshlanib
+qolmaydi):
 
 ```
-https://meabout.vercel.app/api/download-status/{TS}/last7?pass=mr07110.github.io
+https://mrstatus.vercel.app/api/download-status/{TS}/last7?pass=mr07110.github.io
 ```
 
 `{TS}` — joriy sana-vaqt, `YYYYMMDDHHmmss` formatida (masalan,
 2026-yil 9-sentabr, soat 06:19:25 bo'lsa: `20260909061925`). Har
 safar URL ochishdan oldin joriy vaqtni shu formatda hisoblab, `{TS}`
-o'rniga qo'y. Bu faqat kesh-raqam — server uni tekshirmaydi, lekin
-har safar yangi bo'lishi eski (keshlangan) javob qaytmasligini
-ta'minlaydi. URL'ning qolgan qismi (`/last7?pass=mr07110.github.io`)
+o'rniga qo'y. URL'ning qolgan qismi (`/last7?pass=mr07110.github.io`)
 hech qachon o'zgarmaydi.
 
 ---

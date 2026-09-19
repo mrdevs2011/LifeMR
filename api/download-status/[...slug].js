@@ -214,7 +214,10 @@ export default async function handler(req, res) {
   try {
     const slug = req.query.slug;
     const parts = Array.isArray(slug) ? slug : slug ? [slug] : [];
-    const dayFilter = parts.length >= 2 ? parts[1] : null;
+    // 2 segment: /{cacheBuster}/{filter} -> filter = parts[1]
+    // 1 segment: /{filter} -> filter = parts[0]
+    // (cache-buster keraksiz, chunki javob har doim no-store bilan keladi)
+    const dayFilter = parts.length >= 2 ? parts[1] : (parts.length === 1 ? parts[0] : null);
 
     const ok = await verifyPass(req.query.pass);
     if (!ok) {
