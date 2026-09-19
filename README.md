@@ -1,7 +1,7 @@
 # MRstatus
 
 - `index.html` — MRstatus sahifasi (Firebase Firestore'dan o'qiydi)
-- `api/mcp.js` — Claude uchun remote MCP server (tool: `get_status`)
+- `api/mcp.js` — Claude uchun remote MCP server (tool'lar: `get_status`, `get_stats`, `get_latest`, `add_status`)
 - `firestore.rules` — Firestore qoidalari (Firebase console'da alohida publish qilinadi)
 - `instruction.md` — Claude Preferences'ga qo'yiladigan matn
 
