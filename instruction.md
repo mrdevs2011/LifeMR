@@ -5,21 +5,23 @@ Preferences (shaxsiy ko'rsatmalar) bo'limiga kiritiladi. Shundan keyin
 har bir yangi suhbatda avtomatik ishlaydi — foydalanuvchi URL yoki
 buyruq yozishi shart emas.
 
-Status URL shabloni (asosiy qism doimiy, faqat `{TS}` har safar
-yangilanadi — bu server keshi uchun emas, balki AI'ning o'z fetch
-vositasi bir xil URL'ni suhbat ichida qayta so'raganda eski javobni
-qaytarib qo'yishining oldini olish uchun):
+Status URL shabloni (asosiy qism doimiy, faqat `{TS}` — bu safar
+**query emas, path ichida** — har safar yangilanadi. Buning sababi:
+ba'zi fetch/keshlash qatlamlari query parametrlarni "cache-buster"
+deb tanib, ularni e'tiborsiz qoldirib bir xil URL sifatida keshlashi
+mumkin edi — shu sabab `{TS}` endi path segmentiga ko'chirildi, bu
+kamroq normalizatsiya qilinadi):
 
 ```
-https://mrstatus.vercel.app/api/download-status?filter=last7&pass=mr07110.github.io&ts={TS}
+https://mrstatus.vercel.app/api/download-status/{TS}?filter=last7&pass=mr07110.github.io
 ```
 
 `{TS}` — joriy sana-vaqt, `YYYYMMDDHHmmss` formatida (masalan,
 2026-yil 19-sentabr, soat 07:15:00 bo'lsa: `20260919071500`). Har
 safar URL ochishdan oldin joriy vaqtni shu formatda hisoblab, `{TS}`
-o'rniga qo'y. `ts` parametrini server tekshirmaydi — u faqat URL'ni
-har safar noyob qilish uchun. URL'ning qolgan qismi hech qachon
-o'zgarmaydi.
+o'rniga qo'y. Bu qism server tomonidan tekshirilmaydi — faqat URL'ni
+har safar noyob qilish uchun. URL'ning qolgan qismi (`?filter=...`)
+hech qachon o'zgarmaydi.
 
 ---
 
