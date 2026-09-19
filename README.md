@@ -8,6 +8,7 @@ Shaxsiy check-in (kayfiyat/holat) logi — brauzerdan yozib, Claude orqali o'qib
 - `api/mcp.js` — Claude uchun remote MCP server (`get_latest`, `get_status`, `get_stats`, `add_status`)
 - `firestore.rules` — Firestore xavfsizlik qoidalari (Firebase Console'da alohida publish qilinadi)
 - `instruction.md` — Claude Preferences'ga qo'yiladigan matn (faqat Claude'ning o'zi uchun, setup emas)
+- `instruction-tests.md` — instruction.md ni sinash ro'yxati (faqat o'zing uchun, Claude'ga qo'yilmaydi)
 
 ## 1. Vercel Environment Variables (2 ta, ikkalasi ham majburiy)
 
