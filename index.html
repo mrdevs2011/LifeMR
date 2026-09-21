@@ -303,6 +303,113 @@
   .chips.energy .lbl { font-size: .68rem; color: var(--text-faint); margin-right: 2px; }
   .chips.energy .chip { min-width: 26px; text-align: center; }
 
+  /* ---- tezkor kiritish: bento grid ----
+     Hech qayerda px kenglik/balandlik yo'q. Ustunlar — 12 ta teng fr,
+     qatorlar — rem (html font-size allaqachon clamp() bilan o'sadi),
+     gap va shrift — clamp(). Joylashuv grid-template-areas bilan:
+     CSS ichidagi "rasm" aynan eskizning o'zi, harflarni almashtirsang
+     tugmalar joyini almashtiradi. */
+  .qwrap { container-type: inline-size; margin: 9px 0 0; }
+
+  /* Scroll qutisi. Balandlik "qattiq" emas: clamp() ning o'rtasi — dvh.
+     dvh (dynamic viewport height) — vh emas: mobil brauzerda adres qatori
+     yig'ilib-ochilganda vh "sakraydi", dvh esa haqiqiy ko'rinadigan balandlikni beradi.
+     rem chegaralari: juda past yoki juda baland bo'lib ketmasin.
+     max-height (height emas): kontent kalta bo'lsa bo'sh joy qolmaydi. */
+  .qbox {
+    max-height: clamp(10rem, 40dvh, 17rem);
+    overflow-y: auto;
+    padding: clamp(5px, 1.6vw, 8px);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+    /* fokus konturi (outline-offset: 2px) chekkaga tegib kesilmasin */
+    scroll-padding: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-faint) transparent;
+
+    /* Scroll soyasi, 0 qator JS bilan.
+       1-2: "qopqoq" — attachment: local, ya'ni KONTENT bilan birga suriladi.
+       3-4: soya — attachment: scroll (default), ya'ni QUTIGA yopishgan, qimirlamaydi.
+       Tepada turganda qopqoq soyani yopadi; pastga surganingda qopqoq ketadi,
+       soya ochiladi. Shuning uchun soya faqat "davomi bor" paytda ko'rinadi.
+       Gradientda `transparent` emas, panel rangining 0-alfasi — ba'zi brauzerlarda
+       `transparent` kulrang chiziq berib qo'yadi. */
+    background:
+      linear-gradient(var(--panel) 38%, rgba(16, 20, 19, 0)) top / 100% 1.5em no-repeat local,
+      linear-gradient(rgba(16, 20, 19, 0), var(--panel) 62%) bottom / 100% 1.5em no-repeat local,
+      radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, .72), rgba(0, 0, 0, 0)) top / 100% .62em no-repeat,
+      radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, .72), rgba(0, 0, 0, 0)) bottom / 100% .62em no-repeat,
+      var(--panel);
+  }
+  .qbox::-webkit-scrollbar { width: 6px; }
+  .qbox::-webkit-scrollbar-track { background: transparent; }
+  .qbox::-webkit-scrollbar-thumb { background: var(--text-faint); border-radius: 3px; }
+  .qbox::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  .qgrid {
+    display: grid;
+    gap: clamp(3px, .9vw, 6px);
+    /* minmax(0, 1fr): uzun matn ustunni kengaytirib gridni buzmasin */
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    /* minmax(<min>, auto): past chegara bor, lekin matn sig'masa qator o'sadi */
+    grid-auto-rows: minmax(2.1rem, auto);
+    grid-template-areas:
+      "big1 big1 big1 big1 t1   t1   t1   t1   i1 i1 i2 i2"
+      "big1 big1 big1 big1 t2   t2   t2   t2   i1 i1 i2 i2"
+      "t3   t3   t3   t3   t3   t3   t3   t3   t4 t4 t4 t4"
+      "t5   t5   t5   t5   big2 big2 big2 big2 i3 i3 i4 i4"
+      "t6   t6   t6   t6   big2 big2 big2 big2 i3 i3 i4 i4"
+      "t7   t7   t7   t7   t8   t8   t8   t8   t8 t8 t8 t8";
+  }
+
+  /* Tor ekran: media query emas, container query — o'lcham ekranga emas,
+     kartaning o'z kengligiga qarab o'zgaradi (karta max-width: 700px). */
+  @container (max-width: 25rem) {
+    .qgrid {
+      grid-template-areas:
+        "big1 big1 big1 big1 big1 big1 big2 big2 big2 big2 big2 big2"
+        "big1 big1 big1 big1 big1 big1 big2 big2 big2 big2 big2 big2"
+        "i1   i1   i1   i2   i2   i2   i3   i3   i3   i4   i4   i4"
+        "i1   i1   i1   i2   i2   i2   i3   i3   i3   i4   i4   i4"
+        "t1   t1   t1   t1   t1   t1   t2   t2   t2   t2   t2   t2"
+        "t3   t3   t3   t3   t3   t3   t3   t3   t3   t3   t3   t3"
+        "t4   t4   t4   t4   t4   t4   t5   t5   t5   t5   t5   t5"
+        "t6   t6   t6   t6   t6   t6   t7   t7   t7   t7   t7   t7"
+        "t8   t8   t8   t8   t8   t8   t8   t8   t8   t8   t8   t8";
+    }
+  }
+
+  .q-big1{grid-area:big1}.q-big2{grid-area:big2}
+  .q-i1{grid-area:i1}.q-i2{grid-area:i2}.q-i3{grid-area:i3}.q-i4{grid-area:i4}
+  .q-t1{grid-area:t1}.q-t2{grid-area:t2}.q-t3{grid-area:t3}.q-t4{grid-area:t4}
+  .q-t5{grid-area:t5}.q-t6{grid-area:t6}.q-t7{grid-area:t7}.q-t8{grid-area:t8}
+
+  .qt {
+    display: flex; align-items: center; justify-content: center;
+    gap: .42em; min-width: 0; overflow: hidden;
+    padding: .3em .5em;
+    background: transparent; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: inherit; font-size: clamp(.6rem, 1.9cqi, .7rem);
+    font-weight: 500; line-height: 1.15; text-align: center;
+    cursor: pointer;
+    transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+  }
+  .qt span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .qt:hover { border-color: var(--text-faint); color: var(--text); }
+  .qt.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  /* SVG: fill/stroke = currentColor, shuning uchun rang tugmadan meros bo'ladi —
+     hover/on holatda ikonka ham o'zi bilan birga o'zgaradi, alohida qoida kerak emas. */
+  .qt svg { display: block; flex: none; stroke: currentColor; fill: none; }
+  /* katta katak: ikonka tepada, yozuv pastda. em → root clamp bilan o'sadi */
+  .qt.big { flex-direction: column; gap: .5em; }
+  .qt.big svg { width: 1.9em; height: 1.9em; }
+  /* faqat-ikonka katak: o'lcham katakning foizi — px yo'q, cheksiz miqyoslanadi */
+  .qt.ico svg { width: 44%; height: auto; }
+
+  @media (prefers-reduced-motion: reduce) { .qt { transition: none; } }
+
   #gate {
     display: flex;
     flex-direction: column;
@@ -409,12 +516,47 @@
         <input type="text" class="inp" id="holatInput" placeholder="write how you are..." autocomplete="off" maxlength="490" required>
         <button type="submit" id="submitBtn">send</button>
       </form>
-      <div class="chips" id="phraseChips">
-        <button type="button" class="chip" data-t="coding">coding</button>
-        <button type="button" class="chip" data-t="on a new project">new project</button>
-        <button type="button" class="chip" data-t="resting">resting</button>
-        <button type="button" class="chip" data-t="home from school">home from school</button>
-        <button type="button" class="chip" data-t="tired">tired</button>
+      <div class="qwrap">
+        <div class="qbox" id="qbox" role="group" aria-label="quick entry">
+        <div class="qgrid" id="qgrid">
+
+          <button type="button" class="qt big q-big1" data-t="home from school" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 7.4V5.9a2.5 2.5 0 0 1 5 0v1.5"/><path d="M4.8 11.4A4 4 0 0 1 8.8 7.4h6.4a4 4 0 0 1 4 4V18a2.6 2.6 0 0 1-2.6 2.6H7.4A2.6 2.6 0 0 1 4.8 18z"/><path d="M9.2 15.2h5.6"/></svg>
+            <span>home from school</span>
+          </button>
+
+          <button type="button" class="qt big q-big2" data-t="coding" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 8.5 4.5 12l4 3.5"/><path d="M15.5 8.5 19.5 12l-4 3.5"/><path d="M13.6 6.2 10.4 17.8"/></svg>
+            <span>coding</span>
+          </button>
+
+          <button type="button" class="qt ico q-i1" data-t="going to sleep" title="going to sleep" aria-label="going to sleep" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.2 14.8A8.6 8.6 0 0 1 9.2 3.8a8.6 8.6 0 1 0 11 11z"/></svg>
+          </button>
+
+          <button type="button" class="qt ico q-i2" data-t="eating" title="eating" aria-label="eating" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12h17"/><path d="M4.6 12a7.4 7.4 0 0 0 14.8 0"/><path d="M9.4 8c0-1.3 1.2-1.4 1.2-2.7S9.4 3.4 9.4 3.4"/><path d="M14.6 8c0-1.3 1.2-1.4 1.2-2.7s-1.2-1.9-1.2-1.9"/></svg>
+          </button>
+
+          <button type="button" class="qt ico q-i3" data-t="workout" title="workout" aria-label="workout" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 8.2v7.6"/><path d="M4 10.2v3.6"/><path d="M17.2 8.2v7.6"/><path d="M20 10.2v3.6"/><path d="M6.8 12h10.4"/></svg>
+          </button>
+
+          <button type="button" class="qt ico q-i4" data-t="reading" title="reading" aria-label="reading" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7.6C10.5 6.1 8 5.5 4.6 5.5v12c3.4 0 5.9.6 7.4 2.1"/><path d="M12 7.6c1.5-1.5 4-2.1 7.4-2.1v12c-3.4 0-5.9.6-7.4 2.1"/><path d="M12 7.6v12"/></svg>
+          </button>
+
+          <button type="button" class="qt q-t1" data-t="on a new project" aria-pressed="false"><span>new project</span></button>
+          <button type="button" class="qt q-t2" data-t="did homework" aria-pressed="false"><span>did homework</span></button>
+          <button type="button" class="qt q-t3" data-t="wasted time on the phone" aria-pressed="false"><span>wasted time on the phone</span></button>
+          <button type="button" class="qt q-t4" data-t="tired" aria-pressed="false"><span>tired</span></button>
+          <button type="button" class="qt q-t5" data-t="focused" aria-pressed="false"><span>focused</span></button>
+          <button type="button" class="qt q-t6" data-t="bored" aria-pressed="false"><span>bored</span></button>
+          <button type="button" class="qt q-t7" data-t="feeling good" aria-pressed="false"><span>feeling good</span></button>
+          <button type="button" class="qt q-t8" data-t="stuck on a bug" aria-pressed="false"><span>stuck on a bug</span></button>
+
+        </div>
+        </div>
       </div>
       <div class="chips energy" id="energyChips" role="group" aria-label="energy">
         <span class="lbl">energy</span>
@@ -554,14 +696,36 @@
     nudgeEl.textContent = msg;
   }
 
-  // tez yozish: tugmalar inputni to'ldiradi, energiya belgisi yuborishda ' :N' bo'lib qo'shiladi
+  // tez yozish: energiya belgisi yuborishda ' :N' bo'lib qo'shiladi
   let energy = 0;
-  document.getElementById('phraseChips').addEventListener('click', (e) => {
-    const b = e.target.closest('.chip'); if (!b) return;
-    const inp = document.getElementById('holatInput');
-    inp.value = inp.value.trim() ? `${inp.value.trim()}, ${b.dataset.t}` : b.dataset.t;
-    inp.focus();
+
+  // Bento grid. Yagona haqiqat manbai — input matni, tugmalarda alohida state yo'q:
+  // matnni vergul bo'yicha bo'lamiz, bosilgan matn ro'yxatda bo'lsa olib tashlanadi,
+  // bo'lmasa qo'shiladi. Shuning uchun qo'lda yozsang ham tugmalar o'zi yonadi/o'chadi.
+  const qgridEl = document.getElementById('qgrid');
+  const qNorm = (s) => s.trim().toLowerCase().replace(/\s*:[1-5]$/, '');
+  const qParts = () => inputEl.value.split(',').map(s => s.trim()).filter(Boolean);
+
+  function syncTiles() {
+    const have = new Set(qParts().map(qNorm));
+    qgridEl.querySelectorAll('.qt').forEach(b => {
+      const on = have.has(qNorm(b.dataset.t));
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  qgridEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.qt'); if (!b) return;
+    const list = qParts();
+    const i = list.findIndex(p => qNorm(p) === qNorm(b.dataset.t));
+    if (i >= 0) list.splice(i, 1); else list.push(b.dataset.t);
+    inputEl.value = list.join(', ');
+    syncTiles();
+    inputEl.focus();
   });
+
+  inputEl.addEventListener('input', syncTiles);
   document.getElementById('energyChips').addEventListener('click', (e) => {
     const b = e.target.closest('.chip'); if (!b) return;
     const v = +b.dataset.e;
@@ -1040,6 +1204,7 @@
       if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
       if (!r.ok) throw new Error(data.error || r.status);
       inputEl.value = '';
+      syncTiles();
       resetEnergy();
       formStateEl.textContent = 'sent ✓';
       formStateEl.className = 'state ok';
