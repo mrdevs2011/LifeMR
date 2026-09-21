@@ -8,7 +8,9 @@ export default async function handler(req, res) {
     const authed = hasSession(req);
     // Sahifa ochilganda (faqat shu payt, har 10 soniyalik pollingda emas) — sessiya orqali
     // allaqachon kirgan bo'lsang ham, "saytga kirish" sifatida hisoblanadi.
-    if (authed) recordLogin();
+    // Javobdan OLDIN kutiladi: aks holda Vercel funksiyasi javob yuborilgach darhol to'xtatilib,
+    // hali tugamagan Firestore yozuvi bekor bo'lib qolishi mumkin (shu sabab avval sirpanib ketardi).
+    if (authed) await recordLogin();
     return send(res, 200, { authed, blocked: authed ? false : await isBlocked(req) });
   }
   if (req.method !== "POST") {
@@ -25,6 +27,6 @@ export default async function handler(req, res) {
   }
   const r = await authenticate(req, body?.email, body?.password);
   if (!r.ok) return send(res, r.status, r.body);
-  recordLogin(); // kutilmaydi — loginni sekinlashtirmasin, xato bo'lsa ham login davom etadi
+  await recordLogin(); // endi kutiladi — javobdan oldin yozuv kafolatlanadi
   return send(res, 200, { ok: true }, { "Set-Cookie": sessionCookie() });
 }

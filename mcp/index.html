@@ -13,28 +13,31 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* ---- shu blok index.html (root) bilan bir xil: umumiy dev/terminal uslub ---- */
   :root {
     --bg: #0a0c0b;
     --panel: #101413;
     --border: #202826;
+    --border-soft: #171c1a;
     --text: #eef2ef;
     --text-dim: #7c8883;
     --text-faint: #4c5652;
     --accent: #7fe0a0;
     --accent-dim: rgba(127, 224, 160, .1);
     --red: #f2726f;
-    --radius: 14px;
-    --radius-sm: 8px;
+    --red-dim: rgba(242, 114, 111, .1);
+    --radius: 6px;
+    --radius-sm: 4px;
     --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   }
 
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  html { font-size: clamp(14px, 3.6vw, 16px); }
+
+  html { font-size: clamp(14px, 3.4vw, 15.5px); }
 
   html, body {
-    margin: 0;
-    padding: 0;
+    margin: 0; padding: 0;
     min-height: 100%;
     background: var(--bg);
     color: var(--text);
@@ -50,47 +53,53 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  ::selection { background: rgba(127, 224, 160, .1); color: var(--accent); }
+  ::selection { background: var(--accent-dim); color: var(--accent); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
   .page {
-    max-width: 680px;
+    max-width: 700px;
     margin: 0 auto;
-    padding: clamp(20px, 6vw, 56px) clamp(14px, 4vw, 20px) clamp(40px, 8vw, 72px);
+    padding: clamp(16px, 4vw, 40px) clamp(10px, 3vw, 20px) clamp(28px, 5vw, 48px);
   }
 
   .card {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .6);
-    padding: clamp(16px, 4vw, 26px);
+    box-shadow: 0 14px 34px -20px rgba(0, 0, 0, .6);
+    padding: 0;
     overflow: hidden;
   }
 
-  .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: clamp(18px, 4vw, 26px); }
+  .card-body { padding: 16px 20px 20px; }
 
-  .badge {
-    display: block;
-    width: 30px;
-    height: 30px;
-    flex-shrink: 0;
-    border-radius: 8px;
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    background: rgba(255, 255, 255, .012);
   }
+
+  .badge { width: 19px; height: 19px; border-radius: 5px; flex-shrink: 0; display: block; }
 
   h1 {
     display: flex;
     align-items: baseline;
-    gap: 10px;
-    font-size: 1.0625rem;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: .01em;
+    gap: 7px;
+    font-size: .88rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin: 0 auto 0 5px;
+    letter-spacing: 0;
   }
+  h1 b { color: var(--text); font-weight: 600; }
+  h1 .path { color: var(--text-faint); }
 
   .live-dot {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: var(--accent);
     box-shadow: 0 0 0 0 var(--accent-dim);
@@ -104,82 +113,90 @@
     100% { box-shadow: 0 0 0 0 rgba(127, 224, 160, 0); }
   }
 
-  .state { margin: 0 0 12px; min-height: 1.2em; font-size: .8125rem; color: var(--text-dim); }
+  form { display: flex; gap: 8px; margin-bottom: 7px; }
+
+  .inp {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: .88rem;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  .inp::placeholder { color: var(--text-faint); }
+  .inp:hover { border-color: var(--text-faint); }
+  .inp:focus { border-color: var(--accent); }
+  .inp[readonly] { color: var(--accent); }
+
+  button {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color .15s ease, transform .08s ease;
+  }
+  button:hover { background: var(--accent); color: #08130c; }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .4; cursor: default; transform: none; }
+
+  .state { margin: 0 0 12px; min-height: 1.2em; font-size: .82rem; color: var(--text-dim); }
   .state.err { color: var(--red); }
   .state.ok  { color: var(--accent); }
 
+  /* ---- shu sahifaga xos: parol/manzil formasi ---- */
+  #gate { flex-direction: column; margin: 0; }
+  #gate .inp, #gate button { width: 100%; }
+  #gate button { background: var(--bg); color: var(--text); border-color: var(--border); }
+  #gate button:hover { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+
   .field { display: flex; gap: 8px; }
 
-  #gate { display: flex; flex-direction: column; gap: 8px; }
-  #gate input, #gate button { width: 100%; }
-  #gate button {
-    background: var(--bg);
-    color: var(--text);
-    border-color: var(--border);
-  }
-  #gate button:hover { border-color: var(--accent); color: var(--accent); }
-
-  input {
-    flex: 1;
-    min-width: 0;
-    padding: 11px 13px;
-    background: var(--bg);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-family: var(--mono);
-    font-size: .875rem;
-  }
-  input:focus { border-color: var(--accent); outline: none; }
-  input[readonly] { color: var(--accent); }
-
-  button {
-    padding: 11px 18px;
-    background: var(--accent);
-    color: #06120a;
-    border: 1px solid var(--accent);
-    border-radius: var(--radius-sm);
-    font-family: var(--mono);
-    font-size: .8125rem;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-
-  .note { margin: 14px 0 0; font-size: .75rem; line-height: 1.6; color: var(--text-faint); }
+  .note { margin: 14px 0 0; font-size: .76rem; line-height: 1.6; color: var(--text-faint); }
 
   @media (max-width: 420px) { .field { flex-direction: column; } }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
-<main class="page">
-  <section class="card">
-    <header class="topbar">
-      <img class="badge" src="/logo/logo.svg" alt="MRstatus" width="30" height="30">
-      <h1><span>MRstatusMCP</span><span class="live-dot" aria-hidden="true"></span></h1>
-    </header>
-
-    <p class="state" id="state" role="status" aria-live="polite">Kirish</p>
-
-    <form id="gate" autocomplete="off">
-      <input id="email" name="email" type="email" placeholder="Email" autocomplete="off" required>
-      <input id="pass" name="password" type="password" placeholder="Parol" autocomplete="off" required>
-      <button id="passBtn" type="submit">Kirish</button>
-    </form>
-
-    <div id="reveal" hidden>
-      <div class="field">
-        <input id="mcpUrl" type="password" readonly spellcheck="false" autocomplete="off" aria-label="Connector URL">
-        <button id="copyBtn" type="button">Nusxa olish</button>
-      </div>
-      <p class="note">Claude → Settings → Connectors → Add custom connector. Name: mrstatus. URL: nusxa olingan manzil. Uni hech kimga yubormang.</p>
+<div class="page">
+  <div class="card">
+    <div class="topbar">
+      <img class="badge" src="/logo/logo.svg" alt="" width="16" height="16">
+      <h1><b>mrstatus</b><span class="path">~/mcp</span><span class="live-dot" aria-hidden="true"></span></h1>
     </div>
 
-    <noscript><p class="state err">Bu sahifa JavaScript'siz ishlamaydi.</p></noscript>
-  </section>
-</main>
+    <div class="card-body">
+      <p class="state" id="state" role="status" aria-live="polite">Kirish</p>
+
+      <form id="gate" autocomplete="off">
+        <input id="email" class="inp" name="email" type="email" placeholder="Email" autocomplete="off" required>
+        <input id="pass" class="inp" name="password" type="password" placeholder="Parol" autocomplete="off" required>
+        <button id="passBtn" type="submit">Kirish</button>
+      </form>
+
+      <div id="reveal" hidden>
+        <div class="field">
+          <input id="mcpUrl" class="inp" type="password" readonly spellcheck="false" autocomplete="off" aria-label="Connector URL">
+          <button id="copyBtn" type="button">Nusxa olish</button>
+        </div>
+        <p class="note">Claude → Settings → Connectors → Add custom connector. Name: mrstatus. URL: nusxa olingan manzil. Uni hech kimga yubormang.</p>
+      </div>
+
+      <noscript><p class="state err">Bu sahifa JavaScript'siz ishlamaydi.</p></noscript>
+    </div>
+  </div>
+</div>
 
 <script>
   const AUTO_LOCK_MS = 60000; // manzil shuncha turadi, keyin o'zi yopiladi
