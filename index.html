@@ -102,6 +102,21 @@
   .home-link { display: block; flex-shrink: 0; line-height: 0; border-radius: 5px; cursor: pointer; }
   .home-link[aria-current="page"] { cursor: default; }
 
+  .lang-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 32px; height: 32px;
+    padding: 0;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .lang-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .lang-btn svg { display: block; }
+
   h1 {
     display: flex;
     align-items: baseline;
@@ -135,7 +150,12 @@
     display: flex;
     gap: 8px;
     margin-bottom: 7px;
+    align-items: flex-start;
   }
+  #statusForm .tagfield { border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  #statusForm .tagfield:focus-within { border-color: var(--accent); }
+  #statusForm .tf-input { border: none; padding: 9px 12px; }
+  #statusForm .tf-input:hover, #statusForm .tf-input:focus { border-color: transparent; }
 
   .inp {
     flex: 1;
@@ -310,19 +330,25 @@
   .chips.energy .chip { min-width: 26px; text-align: center; }
 
   /* ---- #teg maydoni ----
-     <input> ichidagi matnning bir qismini bo'yab bo'lmaydi. Shuning uchun "ko'zgu" usuli:
-     input'ning matni shaffof (faqat kursor ko'rinadi), uning ORQASIDA aynan shu matn
+     textarea ichidagi matnning bir qismini bo'yab bo'lmaydi. Shuning uchun "ko'zgu" usuli:
+     textarea matni shaffof (faqat kursor ko'rinadi), uning ORQASIDA aynan shu matn
      teglari bo'yalgan holda .tf-hl da chiziladi. Ikkalasi bir xil shrift/padding/joyda turadi,
-     shuning uchun foydalanuvchiga bitta oddiy input bo'lib ko'rinadi. */
+     shuning uchun foydalanuvchiga bitta oddiy maydon bo'lib ko'rinadi. Multi-line uchun
+     white-space: pre-wrap va scroll sinxroni (x/y) ishlatiladi. */
   .tagfield { position: relative; flex: 1; min-width: 0; display: flex; background: var(--bg); border-radius: var(--radius-sm); }
-  .tagfield .tf-input { position: relative; z-index: 1; flex: 1; background: transparent; color: transparent; caret-color: var(--text); }
+  .tagfield .tf-input {
+    position: relative; z-index: 1; flex: 1; background: transparent; color: transparent;
+    caret-color: var(--text); resize: vertical; min-height: 2.6em; max-height: 8em;
+    line-height: 1.45; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;
+  }
   .tagfield .tf-input::selection { background: rgba(127, 224, 160, .28); color: transparent; }
   .tf-hl {
-    position: absolute; inset: 0 13px; /* 1px border + 12px padding = input'ning kontent qutisi */
-    display: flex; align-items: center; overflow: hidden; pointer-events: none;
-    font-size: .88rem; color: var(--text);
+    position: absolute; inset: 1px 13px 1px 13px;
+    display: block; overflow: hidden; pointer-events: none;
+    font-size: .88rem; line-height: 1.45; color: var(--text);
+    white-space: pre-wrap; word-wrap: break-word;
   }
-  .tf-hl > span { flex: none; white-space: pre; }
+  .tf-hl > span { display: block; white-space: pre-wrap; word-wrap: break-word; }
   .tag { color: var(--tag); }
 
   /* ---- tezkor kiritish: bento grid ----
@@ -518,10 +544,18 @@
         <img class="badge" src="/logo/logo.svg" alt="" width="16" height="16">
       </a>
       <h1><b>LifeMR</b><span class="path">~/life</span><span class="live-dot" aria-hidden="true"></span></h1>
+      <button type="button" class="lang-btn" id="langBtn" title="Language" aria-label="Switch language">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M3 12h18"/>
+          <path d="M12 3a14 14 0 0 1 0 18"/>
+          <path d="M12 3a14 14 0 0 0 0 18"/>
+        </svg>
+      </button>
     </div>
 
     <div id="gate">
-      <div class="state" id="gateState">checking...</div>
+      <div class="state" id="gateState">checking...</div><!-- i18n applied in JS -->
       <form id="loginForm" style="display:none" autocomplete="off">
         <input type="email" class="inp" id="emailInput" placeholder="Email" autocomplete="off" required>
         <input type="password" class="inp" id="passInput" placeholder="Password" autocomplete="off" required>
@@ -546,7 +580,7 @@
       <form id="statusForm">
         <div class="tagfield">
           <div class="tf-hl" id="tfHl" aria-hidden="true"><span id="tfHlIn"></span></div>
-          <input type="text" class="inp tf-input" id="holatInput" placeholder="write how you are..." autocomplete="off" spellcheck="false" maxlength="490" required>
+          <textarea class="inp tf-input" id="holatInput" placeholder="write how you are..." autocomplete="off" spellcheck="false" maxlength="490" required rows="2"></textarea>
         </div>
         <button type="submit" id="submitBtn">send</button>
       </form>
@@ -611,7 +645,7 @@
       <div id="formState" class="state"></div>
       <div class="divider"></div>
       <div id="log">
-        <div class="state">loading...</div>
+        <div class="state" id="logLoading">loading...</div>
       </div>
       <div class="state hint">tap a day to open its statuses · <button type="button" id="logoutBtn" class="linkbtn">sign out</button></div>
       </div>
@@ -661,6 +695,201 @@
   const onRoot = ['/', '/index.html'].includes(location.pathname);
   if (onRoot) homeLinkEl.setAttribute('aria-current', 'page');
   homeLinkEl.addEventListener('click', (e) => { if (onRoot) e.preventDefault(); });
+
+  // ---- TIL (EN / UZ) ----
+  // Globus tugmasi: 1 bosish EN, yana 1 bosish UZ (aylanib). UI matnlari + card tugmalaridagi
+  // yoziladigan matnlar ham o'zgaradi. localStorage'da saqlanadi.
+  const I18N = {
+    en: {
+      placeholder: 'write how you are...',
+      send: 'send',
+      status: 'status',
+      schedule: 'schedule',
+      email: 'Email',
+      password: 'Password',
+      signIn: 'Sign in',
+      signOut: 'sign out',
+      checking: 'checking...',
+      loading: 'loading...',
+      noEntries: 'no entries yet.',
+      energy: 'energy',
+      quickEntry: 'quick entry',
+      homeFromSchool: 'home from school',
+      coding: 'coding',
+      goingToSleep: 'going to sleep',
+      eating: 'eating',
+      workout: 'workout',
+      reading: 'reading',
+      newProject: 'new project',
+      didHomework: 'did homework',
+      wastedTime: 'wasted time on the phone',
+      tired: 'tired',
+      focused: 'focused',
+      bored: 'bored',
+      feelingGood: 'feeling good',
+      stuckOnBug: 'stuck on a bug',
+      wokeUp: 'woke up',
+      goingToSchool: 'going to school',
+      fixedBug: 'fixed a bug',
+      pushedCode: 'pushed code',
+      stressed: 'stressed',
+      withFriends: 'with friends',
+      hint: 'tap a day to open its statuses · ',
+      time: 'Time',
+      mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat',
+      sent: 'sent ✓',
+      error: 'error: ',
+    },
+    uz: {
+      placeholder: 'holatingni yoz...',
+      send: 'yubor',
+      status: 'status',
+      schedule: 'jadval',
+      email: 'Email',
+      password: 'Parol',
+      signIn: 'Kirish',
+      signOut: 'chiqish',
+      checking: 'tekshirilmoqda...',
+      loading: 'yuklanmoqda...',
+      noEntries: 'hali yozuv yo\'q.',
+      energy: 'energiya',
+      quickEntry: 'tezkor kiritish',
+      homeFromSchool: 'uyga qaytdim',
+      coding: 'kod yozayapman',
+      goingToSleep: 'uxlashga ketayapman',
+      eating: 'ovqatlanayapman',
+      workout: 'mashq qilayapman',
+      reading: 'kitob o\'qiyapman',
+      newProject: 'yangi loyiha',
+      didHomework: 'uy vazifasini qildim',
+      wastedTime: 'telefonda vaqt o\'tkazdim',
+      tired: 'charchadim',
+      focused: 'diqqatli',
+      bored: 'zerikdim',
+      feelingGood: 'yaxshi kayfiyat',
+      stuckOnBug: 'bug\'ga tiqildim',
+      wokeUp: 'uyg\'ondim',
+      goingToSchool: 'maktabga ketayapman',
+      fixedBug: 'bug\'ni tuzatdim',
+      pushedCode: 'kodni push qildim',
+      stressed: 'stressdaman',
+      withFriends: 'do\'stlar bilan',
+      hint: 'kunni bosib statuslarini och · ',
+      time: 'Vaqt',
+      mon: 'Du', tue: 'Se', wed: 'Ch', thu: 'Pa', fri: 'Ju', sat: 'Sh',
+      sent: 'yuborildi ✓',
+      error: 'xato: ',
+    }
+  };
+  let lang = localStorage.getItem('lifemr-lang') || 'en';
+  if (lang !== 'en' && lang !== 'uz') lang = 'en';
+
+  function t(key) { return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
+
+  function applyLang() {
+    document.documentElement.lang = lang === 'uz' ? 'uz' : 'en';
+    // form / gate
+    const holat = document.getElementById('holatInput');
+    if (holat) holat.placeholder = t('placeholder');
+    const sub = document.getElementById('submitBtn');
+    if (sub) sub.textContent = t('send');
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tb => {
+      if (tb.dataset.tab === 'status') tb.textContent = t('status');
+      if (tb.dataset.tab === 'jadval') tb.textContent = t('schedule');
+    });
+    const email = document.getElementById('emailInput');
+    if (email) email.placeholder = t('email');
+    const pass = document.getElementById('passInput');
+    if (pass) pass.placeholder = t('password');
+    const passBtn = document.getElementById('passBtn');
+    if (passBtn) passBtn.textContent = t('signIn');
+    const logout = document.getElementById('logoutBtn');
+    if (logout) logout.textContent = t('signOut');
+    // energy label
+    const enLbl = document.querySelector('#energyChips .lbl');
+    if (enLbl) enLbl.textContent = t('energy');
+    // qbox aria
+    const qbox = document.getElementById('qbox');
+    if (qbox) qbox.setAttribute('aria-label', t('quickEntry'));
+    // quick tiles: update data-t and visible text / title / aria
+    const map = {
+      'home from school': 'homeFromSchool',
+      'coding': 'coding',
+      'going to sleep': 'goingToSleep',
+      'eating': 'eating',
+      'workout': 'workout',
+      'reading': 'reading',
+      'new project': 'newProject',
+      'did homework': 'didHomework',
+      'wasted time on the phone': 'wastedTime',
+      'tired': 'tired',
+      'focused': 'focused',
+      'bored': 'bored',
+      'feeling good': 'feelingGood',
+      'stuck on a bug': 'stuckOnBug',
+      'woke up': 'wokeUp',
+      'going to school': 'goingToSchool',
+      'fixed a bug': 'fixedBug',
+      'pushed code': 'pushedCode',
+      'stressed': 'stressed',
+      'with friends': 'withFriends',
+    };
+    // reverse for current data-t (which may already be translated)
+    const reverse = {};
+    for (const [en, key] of Object.entries(map)) {
+      reverse[I18N.en[key]] = key;
+      reverse[I18N.uz[key]] = key;
+    }
+    document.querySelectorAll('#qgrid .qt').forEach(b => {
+      const cur = b.dataset.t || '';
+      const key = reverse[cur] || map[cur];
+      if (!key) return;
+      const txt = t(key);
+      b.dataset.t = txt;
+      const span = b.querySelector('span');
+      if (span) span.textContent = txt;
+      if (b.classList.contains('ico')) {
+        b.title = txt;
+        b.setAttribute('aria-label', txt);
+      }
+    });
+    // schedule headers
+    const ths = document.querySelectorAll('table.jadval thead th');
+    if (ths.length >= 8) {
+      ths[1].textContent = t('time');
+      ths[1].title = lang === 'uz' ? 'Dars boshlanishi va tugashi' : 'Lesson start and end';
+      ['mon','tue','wed','thu','fri','sat'].forEach((k, i) => {
+        if (ths[i+2]) { ths[i+2].textContent = t(k); ths[i+2].title = t(k); }
+      });
+    }
+    // hint
+    const hint = document.querySelector('.state.hint');
+    if (hint) {
+      // keep the logout button, replace the leading text
+      const btn = hint.querySelector('#logoutBtn');
+      hint.textContent = '';
+      hint.append(document.createTextNode(t('hint')));
+      if (btn) hint.appendChild(btn);
+    }
+    // lang btn title
+    const lb = document.getElementById('langBtn');
+    if (lb) lb.title = lang === 'en' ? 'O\'zbekcha' : 'English';
+  }
+
+  const langBtnEl = document.getElementById('langBtn');
+  if (langBtnEl) {
+    langBtnEl.addEventListener('click', () => {
+      lang = lang === 'en' ? 'uz' : 'en';
+      localStorage.setItem('lifemr-lang', lang);
+      applyLang();
+      // re-sync tiles because data-t changed
+      if (typeof syncTiles === 'function') syncTiles();
+    });
+  }
+  // initial apply after DOM ready (we are already in script)
+  // apply later after other els, but call now for static
+  applyLang();
 
   function esc(s) {
     const d = document.createElement('div');
@@ -787,7 +1016,8 @@
   // input matni o'zgarganda: tugmalar holati + ko'zgu (bo'yalgan teglar) + gorizontal scroll sinxroni
   function paintHl() {
     hlInEl.innerHTML = renderTags(inputEl.value);
-    hlInEl.style.transform = `translateX(${-inputEl.scrollLeft}px)`;
+    // multi-line: x va y scroll sinxroni
+    hlInEl.style.transform = `translate(${-inputEl.scrollLeft}px, ${-inputEl.scrollTop}px)`;
   }
   function syncTiles() {
     const have = tagsIn(inputEl.value);
@@ -868,7 +1098,7 @@
   function render(docs) {
     updateHabit(docs);
     if (docs.length === 0) {
-      logEl.innerHTML = `<div class="state">no entries yet.</div>`;
+      logEl.innerHTML = `<div class="state">${t('noEntries')}</div>`;
       return;
     }
 
@@ -1236,7 +1466,7 @@
     if (!email || !pass) return;
 
     passBtnEl.disabled = true;
-    gateStateEl.textContent = 'checking...';
+    gateStateEl.textContent = t('checking');
     gateStateEl.className = 'state';
     try {
       const { r, data } = await api('/api/login', {
@@ -1292,7 +1522,7 @@
       inputEl.value = '';
       syncTiles();
       resetEnergy();
-      formStateEl.textContent = 'sent ✓';
+      formStateEl.textContent = t('sent');
       formStateEl.className = 'state ok';
       setTimeout(() => { formStateEl.textContent = ''; }, 2000);
       loadLog();

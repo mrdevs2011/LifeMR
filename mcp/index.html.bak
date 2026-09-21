@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LifeMR · MCP</title>
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="theme-color" content="#0a0c0b">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/svg+xml" href="/logo/logo.svg">
+<link rel="alternate icon" type="image/x-icon" sizes="48x48" href="/logo/logo.ico">
+<link rel="apple-touch-icon" href="/logo/logo-180.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---- shu blok index.html (root) bilan bir xil: umumiy dev/terminal uslub ---- */
+  :root {
+    --bg: #0a0c0b;
+    --panel: #101413;
+    --border: #202826;
+    --border-soft: #171c1a;
+    --text: #eef2ef;
+    --text-dim: #7c8883;
+    --text-faint: #4c5652;
+    --accent: #7fe0a0;
+    --accent-dim: rgba(127, 224, 160, .1);
+    --red: #f2726f;
+    --red-dim: rgba(242, 114, 111, .1);
+    --radius: 6px;
+    --radius-sm: 4px;
+    --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  html { font-size: clamp(14px, 3.4vw, 15.5px); }
+
+  html, body {
+    margin: 0; padding: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(127, 224, 160, .05), transparent 60%),
+      var(--bg);
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  ::selection { background: var(--accent-dim); color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+  .page {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: clamp(16px, 4vw, 40px) clamp(10px, 3vw, 20px) clamp(28px, 5vw, 48px);
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 14px 34px -20px rgba(0, 0, 0, .6);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .card-body { padding: 16px 20px 20px; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    background: rgba(255, 255, 255, .012);
+  }
+
+  .badge { width: 19px; height: 19px; border-radius: 5px; flex-shrink: 0; display: block; }
+
+  h1 {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    font-size: .88rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin: 0 auto 0 5px;
+    letter-spacing: 0;
+  }
+  h1 b { color: var(--text); font-weight: 600; }
+  h1 .path { color: var(--text-faint); }
+
+  .live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 var(--accent-dim);
+    flex-shrink: 0;
+    animation: pulse 2.4s ease-out infinite;
+  }
+
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(127, 224, 160, .35); }
+    70%  { box-shadow: 0 0 0 7px rgba(127, 224, 160, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(127, 224, 160, 0); }
+  }
+
+  form { display: flex; gap: 8px; margin-bottom: 7px; }
+
+  .inp {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: .88rem;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  .inp::placeholder { color: var(--text-faint); }
+  .inp:hover { border-color: var(--text-faint); }
+  .inp:focus { border-color: var(--accent); }
+  .inp[readonly] { color: var(--accent); }
+
+  button {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color .15s ease, transform .08s ease;
+  }
+  button:hover { background: var(--accent); color: #08130c; }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .4; cursor: default; transform: none; }
+
+  .state { margin: 0 0 12px; min-height: 1.2em; font-size: .82rem; color: var(--text-dim); }
+  .state.err { color: var(--red); }
+  .state.ok  { color: var(--accent); }
+
+  /* ---- shu sahifaga xos: parol/manzil formasi ---- */
+  #gate { flex-direction: column; margin: 0; }
+  #gate .inp, #gate button { width: 100%; }
+  #gate button { background: var(--bg); color: var(--text); border-color: var(--border); }
+  #gate button:hover { border-color: var(--accent); color: var(--accent); background: var(--bg); }
+
+  .field { display: flex; gap: 8px; }
+
+  .note { margin: 14px 0 0; font-size: .76rem; line-height: 1.6; color: var(--text-faint); }
+
+  @media (max-width: 420px) { .field { flex-direction: column; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="card">
+    <div class="topbar">
+      <img class="badge" src="/logo/logo.svg" alt="" width="16" height="16">
+      <h1><b>LifeMR</b><span class="path">~/mcp</span><span class="live-dot" aria-hidden="true"></span></h1>
+    </div>
+
+    <div class="card-body">
+      <p class="state" id="state" role="status" aria-live="polite">Sign in</p>
+
+      <form id="gate" autocomplete="off">
+        <input id="email" class="inp" name="email" type="email" placeholder="Email" autocomplete="off" required>
+        <input id="pass" class="inp" name="password" type="password" placeholder="Password" autocomplete="off" required>
+        <button id="passBtn" type="submit">Sign in</button>
+      </form>
+
+      <div id="reveal" hidden>
+        <div class="field">
+          <input id="mcpUrl" class="inp" type="password" readonly spellcheck="false" autocomplete="off" aria-label="Connector URL">
+          <button id="copyBtn" type="button">Copy</button>
+        </div>
+        <p class="note">Claude → Settings → Connectors → Add custom connector. Name: lifemr. URL: the copied address. Do not send it to anyone.</p>
+      </div>
+
+      <noscript><p class="state err">This page does not work without JavaScript.</p></noscript>
+    </div>
+  </div>
+</div>
+
+<script>
+  const AUTO_LOCK_MS = 60000; // manzil shuncha turadi, keyin o'zi yopiladi
+
+  const $ = (id) => document.getElementById(id);
+  const stateEl  = $('state');
+  const gateEl   = $('gate');
+  const emailEl  = $('email');
+  const passEl   = $('pass');
+  const passBtn  = $('passBtn');
+  const revealEl = $('reveal');
+  const urlEl    = $('mcpUrl');
+  const copyBtn  = $('copyBtn');
+
+  let lockTimer = null;
+
+  function setState(text, kind = '') {
+    stateEl.textContent = text;
+    stateEl.className = 'state' + (kind ? ' ' + kind : '');
+  }
+
+  // Manzil faqat server parolni tasdiqlagandan keyin DOM'ga yoziladi.
+  function showUrl(url) {
+    urlEl.value = url;
+    urlEl.type = 'password';
+    gateEl.hidden = true;
+    revealEl.hidden = false;
+    setState('password is correct', 'ok');
+    clearTimeout(lockTimer);
+    lockTimer = setTimeout(() => lock('time is up, address hidden'), AUTO_LOCK_MS);
+  }
+
+  function fmtLeft(total) {
+    let s = Math.max(0, Math.floor(total));
+    const Y = 31536000, D = 86400;
+    const y = Math.floor(s / Y); s -= y * Y;
+    const d = Math.floor(s / D); s -= d * D;
+    const hh = Math.floor(s / 3600); s -= hh * 3600;
+    const mm = Math.floor(s / 60); s -= mm * 60;
+    const parts = [];
+    if (y) parts.push(`${y} year${y === 1 ? '' : 's'}`);
+    if (d) parts.push(`${d} day${d === 1 ? '' : 's'}`);
+    if (hh) parts.push(`${hh} hour${hh === 1 ? '' : 's'}`);
+    if (mm) parts.push(`${mm} minute${mm === 1 ? '' : 's'}`);
+    parts.push(`${s} second${s === 1 ? '' : 's'}`);
+    return parts.join(' ');
+  }
+
+  // IP bloklangan: forma yashirinadi, qolgan vaqt orqaga sanaladi. Blok serverda IP bo'yicha turadi,
+  // shuning uchun sahifani yangilasang ham (yoki boshqa qurilmadan, shu IP'dan) sanash davom etadi.
+  let blockTimer = null;
+  function showBlocked(info = {}) {
+    if (blockTimer) { clearInterval(blockTimer); blockTimer = null; }
+    gateEl.hidden = true;
+    gateEl.style.display = 'none';
+    if (info.permanent || !Number.isFinite(info.retry_after_sec)) {
+      setState('Your IP is blocked', 'err');
+      return;
+    }
+    const endAt = performance.now() + info.retry_after_sec * 1000;
+    const tick = () => {
+      const left = Math.ceil((endAt - performance.now()) / 1000);
+      if (left <= 0) {
+        clearInterval(blockTimer); blockTimer = null;
+        recheckAfterBlock();
+        return;
+      }
+      setState(`Your IP is blocked. Unlocks in: ${fmtLeft(left)}`, 'err');
+    };
+    tick();
+    blockTimer = setInterval(tick, 1000);
+  }
+
+  async function recheckAfterBlock() {
+    try {
+      const r = await fetch('/api/mcp-link', { cache: 'no-store' });
+      const d = await r.json();
+      if (d && d.blocked) { showBlocked(d); return; }
+      gateEl.style.display = '';
+      gateEl.hidden = false;
+      setState('Sign in');
+      passEl.focus();
+    } catch {
+      showBlocked({ retry_after_sec: 5 });
+    }
+  }
+
+  function lock(message = 'hidden') {
+    clearTimeout(lockTimer);
+    lockTimer = null;
+    urlEl.value = '';
+    urlEl.type = 'password';
+    passEl.value = '';
+    revealEl.hidden = true;
+    gateEl.hidden = false;
+    setState(message);
+    passEl.focus();
+  }
+
+  gateEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const val = passEl.value;
+    const mail = emailEl.value.trim();
+    if (!val || !mail) return;
+
+    passBtn.disabled = true;
+    setState('checking…');
+    try {
+      const r = await fetch('/api/mcp-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: mail, password: val }),
+        cache: 'no-store'
+      });
+      const data = await r.json().catch(() => ({}));
+      passEl.value = '';
+      emailEl.value = '';
+
+      if (r.ok && data.url) {
+        showUrl(data.url);
+      } else if (r.status === 403) {
+        showBlocked(data);
+      } else if (r.status === 401) {
+        const left = data.attempts_left;
+        setState('email or password is wrong' + (data.unlimited ? '. Door is open, no limit: you can try again' : left ? `. ${left} attempt${left === 1 ? '' : 's'} left` : ''), 'err');
+      } else if (r.status === 429) {
+        setState(`too many attempts. wait ${data.retry_after_sec || 60} seconds`, 'err');
+      } else {
+        setState(`error: ${data.error || r.status}`, 'err');
+      }
+    } catch {
+      setState('could not reach the server', 'err');
+    } finally {
+      passBtn.disabled = false;
+    }
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(urlEl.value);
+      setState('copied', 'ok');
+    } catch {
+      // Clipboard bloklangan bo'lsa: matnni ko'rsatib tanlaymiz, qo'lda ko'chirasan
+      urlEl.type = 'text';
+      urlEl.focus();
+      urlEl.select();
+      setState('could not copy automatically. Text selected, press Ctrl+C', 'err');
+    }
+  });
+
+  // Sahifa fonga o'tsa (boshqa tab) ochiq manzil qolib ketmasin
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !revealEl.hidden) lock('you left the page, address hidden');
+  });
+
+  // Sahifa ochilganda: IP oldin bloklanganmi?
+  fetch('/api/mcp-link', { cache: 'no-store' })
+    .then((r) => r.json())
+    .then((d) => {
+      if (d && d.blocked) showBlocked(d);
+    })
+    .catch(() => {});
+
+  passEl.focus();
+</script>
+</body>
+</html>

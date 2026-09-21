@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LifeMR</title>
+<meta name="application-name" content="LifeMR">
+<meta name="apple-mobile-web-app-title" content="LifeMR">
+<meta name="theme-color" content="#0a0c0b">
+<meta name="description" content="LifeMR">
+<link rel="icon" type="image/svg+xml" href="/logo/logo.svg">
+<link rel="alternate icon" type="image/x-icon" sizes="48x48" href="/logo/logo.ico">
+<link rel="apple-touch-icon" href="/logo/logo-180.png">
+<link rel="manifest" href="/logo/site.webmanifest">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0b;
+    --panel: #101413;
+    --border: #202826;
+    --border-soft: #171c1a;
+    --text: #eef2ef;
+    --text-dim: #7c8883;
+    --text-faint: #4c5652;
+    --accent: #7fe0a0;
+    --accent-dim: rgba(127, 224, 160, .1);
+    --red: #f2726f;
+    --red-dim: rgba(242, 114, 111, .1);
+    --tag: #7fb2e6;
+    --radius: 6px;
+    --radius-sm: 4px;
+    --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  html {
+    /* fluid type scale — ekran kengligiga qarab silliq o'sadi/kichrayadi,
+       qat'iy breakpoint'larga tayanmasdan har qanday device'da tekis ko'rinadi */
+    font-size: clamp(14px, 3.4vw, 15.5px);
+  }
+
+  html, body {
+    margin: 0; padding: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(127, 224, 160, .05), transparent 60%),
+      var(--bg);
+  }
+
+  ::selection { background: var(--accent-dim); color: var(--accent); }
+
+  a, button, input, .day-row { -webkit-tap-highlight-color: transparent; }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .page {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: clamp(16px, 4vw, 40px) clamp(10px, 3vw, 20px) clamp(28px, 5vw, 48px);
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 18px 44px -22px rgba(0, 0, 0, .6);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .card-body {
+    padding: 16px 20px 20px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    background: rgba(255, 255, 255, .012);
+  }
+
+
+  .badge { width: 19px; height: 19px; border-radius: 5px; flex-shrink: 0; display: block; }
+
+  /* header ikonka = "uy" havolasi: har sahifada lifemr.vercel.app/ ga olib boradi (o'sha tabda).
+     Ildizda (/) turganda hech narsa qilmaydi va kursor oddiy strelka bo'lib qoladi. */
+  .home-link { display: block; flex-shrink: 0; line-height: 0; border-radius: 5px; cursor: pointer; }
+  .home-link[aria-current="page"] { cursor: default; }
+
+  h1 {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    font-size: .88rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin: 0 auto 0 5px;
+    letter-spacing: 0;
+  }
+  h1 b { color: var(--text); font-weight: 600; }
+  h1 .path { color: var(--text-faint); }
+
+  .live-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 var(--accent-dim);
+    flex-shrink: 0;
+    animation: pulse 2.4s ease-out infinite;
+  }
+
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(127, 224, 160, .35); }
+    70%  { box-shadow: 0 0 0 7px rgba(127, 224, 160, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(127, 224, 160, 0); }
+  }
+
+  form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 7px;
+  }
+
+  .inp {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: .88rem;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color .15s ease;
+  }
+  .inp::placeholder { color: var(--text-faint); }
+  .inp:hover { border-color: var(--text-faint); }
+  .inp:focus { border-color: var(--accent); }
+
+  button {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: inherit;
+    font-size: .85rem;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color .15s ease, transform .08s ease;
+  }
+  button:hover { background: var(--accent); color: #08130c; }
+  button:active { transform: scale(.97); }
+  button:disabled { opacity: .4; cursor: default; transform: none; }
+
+  #loginForm { flex-direction: column; margin: 0; }
+  .linkbtn {
+    background: none; border: none; padding: 0; color: var(--text-dim);
+    font-size: inherit; font-weight: 500; text-decoration: underline; cursor: pointer;
+  }
+  .linkbtn:hover { color: var(--text); opacity: 1; }
+
+  #gate button, #gate input { width: 100%; }
+  #gate button {
+    background: var(--bg);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  #gate button:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+  .divider {
+    height: 1px;
+    background: var(--border-soft);
+    margin: 10px 0 2px;
+  }
+
+  .day { border-bottom: 1px solid var(--border-soft); font-size: .88rem; }
+  .day:last-child { border-bottom: none; }
+
+  .day-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 5px;
+    margin: 0 -5px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color .15s ease;
+  }
+  .day-row:hover { background: rgba(255, 255, 255, .025); }
+  .day-row:active { background: rgba(255, 255, 255, .045); }
+
+  .day-date {
+    color: var(--text);
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .day.open .day-date { color: var(--accent); }
+
+  .day-count {
+    color: var(--text-faint);
+    font-size: .72rem;
+    flex: 1;
+  }
+
+  .day-arrow {
+    color: var(--text-faint);
+    font-size: .78rem;
+    transition: transform .25s ease, color .15s ease;
+    flex-shrink: 0;
+  }
+  .day.open .day-arrow { transform: rotate(90deg); color: var(--accent); }
+
+  .day-entries {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    padding-bottom: 4px;
+    transition: max-height .32s cubic-bezier(.4, 0, .2, 1), opacity .28s ease;
+  }
+  .day.open .day-entries { opacity: 1; }
+
+  .entry {
+    display: flex;
+    gap: 10px;
+    padding: 4px 0 4px 10px;
+    border-left: 2px solid var(--border);
+    margin-left: 3px;
+    font-size: .78rem;
+    line-height: 1.4;
+  }
+
+  .ts {
+    color: var(--text-faint);
+    white-space: nowrap;
+    flex-shrink: 0;
+    width: 40px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .holat {
+    color: var(--text);
+    word-break: break-word;
+    min-width: 0;
+  }
+
+  .state {
+    color: var(--text-dim);
+    font-size: .75rem;
+    padding: 5px 4px;
+  }
+  .state.err { color: var(--red); }
+  .state.ok { color: var(--accent); }
+  .hint { font-size: .68rem; color: var(--text-faint); padding-top: 8px; }
+
+
+  /* ---- odat qatlami: kunlik ritm, eslatma, tez yozish ---- */
+  .week { margin: 0 0 10px; }
+  .week-dots { display: flex; gap: 5px; }
+  .wd { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 0; }
+  .wd i {
+    width: 100%; max-width: 34px; height: 6px; border-radius: 3px;
+    background: var(--border-soft); border: 1px solid var(--border);
+    transition: background-color .25s ease, border-color .25s ease;
+  }
+  .wd.on i { background: var(--accent); border-color: var(--accent); }
+  .wd.today i { border-color: var(--text-dim); }
+  .wd.today.on i { border-color: var(--accent); }
+  .wd.pop i { animation: pop .5s ease-out; }
+  .wd span { font-size: .6rem; color: var(--text-faint); }
+  .wd.today span { color: var(--text-dim); }
+  @keyframes pop { 0% { transform: scaleY(1); } 40% { transform: scaleY(1.9); } 100% { transform: scaleY(1); } }
+  .week-note { margin-top: 5px; font-size: .7rem; color: var(--text-dim); min-height: 1.2em; }
+
+  .nudge {
+    margin: 0 0 8px; padding: 6px 9px; font-size: .74rem; color: var(--accent);
+    background: var(--accent-dim); border: 1px solid rgba(127, 224, 160, .25); border-radius: var(--radius-sm);
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 0; }
+  .chip {
+    background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+    font-size: .68rem; font-weight: 500; padding: 3px 7px; border-radius: var(--radius-sm);
+  }
+  .chip:hover { border-color: var(--text-faint); color: var(--text); opacity: 1; }
+  .chip.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .chips.energy { align-items: center; }
+  .chips.energy .lbl { font-size: .68rem; color: var(--text-faint); margin-right: 2px; }
+  .chips.energy .chip { min-width: 26px; text-align: center; }
+
+  /* ---- #teg maydoni ----
+     <input> ichidagi matnning bir qismini bo'yab bo'lmaydi. Shuning uchun "ko'zgu" usuli:
+     input'ning matni shaffof (faqat kursor ko'rinadi), uning ORQASIDA aynan shu matn
+     teglari bo'yalgan holda .tf-hl da chiziladi. Ikkalasi bir xil shrift/padding/joyda turadi,
+     shuning uchun foydalanuvchiga bitta oddiy input bo'lib ko'rinadi. */
+  .tagfield { position: relative; flex: 1; min-width: 0; display: flex; background: var(--bg); border-radius: var(--radius-sm); }
+  .tagfield .tf-input { position: relative; z-index: 1; flex: 1; background: transparent; color: transparent; caret-color: var(--text); }
+  .tagfield .tf-input::selection { background: rgba(127, 224, 160, .28); color: transparent; }
+  .tf-hl {
+    position: absolute; inset: 0 13px; /* 1px border + 12px padding = input'ning kontent qutisi */
+    display: flex; align-items: center; overflow: hidden; pointer-events: none;
+    font-size: .88rem; color: var(--text);
+  }
+  .tf-hl > span { flex: none; white-space: pre; }
+  .tag { color: var(--tag); }
+
+  /* ---- tezkor kiritish: bento grid ----
+     Hech qayerda px kenglik/balandlik yo'q. Ustunlar — 12 ta teng fr,
+     qatorlar — rem (html font-size allaqachon clamp() bilan o'sadi),
+     gap va shrift — clamp(). Joylashuv grid-template-areas bilan:
+     CSS ichidagi "rasm" aynan eskizning o'zi, harflarni almashtirsang
+     tugmalar joyini almashtiradi. */
+  .qwrap { container-type: inline-size; margin: 9px 0 0; }
+
+  /* Scroll qutisi. Balandlik "qattiq" emas: clamp() ning o'rtasi — dvh.
+     dvh (dynamic viewport height) — vh emas: mobil brauzerda adres qatori
+     yig'ilib-ochilganda vh "sakraydi", dvh esa haqiqiy ko'rinadigan balandlikni beradi.
+     rem chegaralari: juda past yoki juda baland bo'lib ketmasin.
+     max-height (height emas): kontent kalta bo'lsa bo'sh joy qolmaydi. */
+  .qbox {
+    max-height: clamp(10rem, 40dvh, 21rem);
+    overflow-y: auto;
+    padding: clamp(5px, 1.6vw, 8px);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius);
+    /* fokus konturi (outline-offset: 2px) chekkaga tegib kesilmasin */
+    scroll-padding: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-faint) transparent;
+
+    /* Scroll soyasi, 0 qator JS bilan.
+       1-2: "qopqoq" — attachment: local, ya'ni KONTENT bilan birga suriladi.
+       3-4: soya — attachment: scroll (default), ya'ni QUTIGA yopishgan, qimirlamaydi.
+       Tepada turganda qopqoq soyani yopadi; pastga surganingda qopqoq ketadi,
+       soya ochiladi. Shuning uchun soya faqat "davomi bor" paytda ko'rinadi.
+       Gradientda `transparent` emas, panel rangining 0-alfasi — ba'zi brauzerlarda
+       `transparent` kulrang chiziq berib qo'yadi. */
+    background:
+      linear-gradient(var(--panel) 38%, rgba(16, 20, 19, 0)) top / 100% 1.5em no-repeat local,
+      linear-gradient(rgba(16, 20, 19, 0), var(--panel) 62%) bottom / 100% 1.5em no-repeat local,
+      radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, .72), rgba(0, 0, 0, 0)) top / 100% .62em no-repeat,
+      radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, .72), rgba(0, 0, 0, 0)) bottom / 100% .62em no-repeat,
+      var(--panel);
+  }
+  .qbox::-webkit-scrollbar { width: 6px; }
+  .qbox::-webkit-scrollbar-track { background: transparent; }
+  .qbox::-webkit-scrollbar-thumb { background: var(--text-faint); border-radius: 3px; }
+  .qbox::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  .qgrid {
+    display: grid;
+    gap: clamp(3px, .9vw, 6px);
+    /* minmax(0, 1fr): uzun matn ustunni kengaytirib gridni buzmasin */
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    /* minmax(<min>, auto): past chegara bor, lekin matn sig'masa qator o'sadi */
+    grid-auto-rows: minmax(2.1rem, auto);
+    grid-template-areas:
+      "big1 big1 big1 big1 t1   t1   t1   t1   i1 i1 i2 i2"
+      "big1 big1 big1 big1 t2   t2   t2   t2   i1 i1 i2 i2"
+      "t3   t3   t3   t3   t3   t3   t3   t3   t4 t4 t4 t4"
+      "t5   t5   t5   t5   big2 big2 big2 big2 i3 i3 i4 i4"
+      "t6   t6   t6   t6   big2 big2 big2 big2 i3 i3 i4 i4"
+      "t7   t7   t7   t7   t8   t8   t8   t8   t8 t8 t8 t8"
+      "t9   t9   t9   t9   t10  t10  t10  t10  t11 t11 t11 t11"
+      "t12  t12  t12  t12  t13  t13  t13  t13  t14 t14 t14 t14";
+  }
+
+  /* Tor ekran: media query emas, container query — o'lcham ekranga emas,
+     kartaning o'z kengligiga qarab o'zgaradi (karta max-width: 700px). */
+  @container (max-width: 25rem) {
+    .qgrid {
+      grid-template-areas:
+        "big1 big1 big1 big1 big1 big1 big2 big2 big2 big2 big2 big2"
+        "big1 big1 big1 big1 big1 big1 big2 big2 big2 big2 big2 big2"
+        "i1   i1   i1   i2   i2   i2   i3   i3   i3   i4   i4   i4"
+        "i1   i1   i1   i2   i2   i2   i3   i3   i3   i4   i4   i4"
+        "t1   t1   t1   t1   t1   t1   t2   t2   t2   t2   t2   t2"
+        "t3   t3   t3   t3   t3   t3   t3   t3   t3   t3   t3   t3"
+        "t4   t4   t4   t4   t4   t4   t5   t5   t5   t5   t5   t5"
+        "t6   t6   t6   t6   t6   t6   t7   t7   t7   t7   t7   t7"
+        "t8   t8   t8   t8   t8   t8   t8   t8   t8   t8   t8   t8"
+        "t9   t9   t9   t9   t9   t9   t10  t10  t10  t10  t10  t10"
+        "t11  t11  t11  t11  t11  t11  t12  t12  t12  t12  t12  t12"
+        "t13  t13  t13  t13  t13  t13  t14  t14  t14  t14  t14  t14";
+    }
+  }
+
+  .q-big1{grid-area:big1}.q-big2{grid-area:big2}
+  .q-i1{grid-area:i1}.q-i2{grid-area:i2}.q-i3{grid-area:i3}.q-i4{grid-area:i4}
+  .q-t1{grid-area:t1}.q-t2{grid-area:t2}.q-t3{grid-area:t3}.q-t4{grid-area:t4}
+  .q-t5{grid-area:t5}.q-t6{grid-area:t6}.q-t7{grid-area:t7}.q-t8{grid-area:t8}
+  .q-t9{grid-area:t9}.q-t10{grid-area:t10}.q-t11{grid-area:t11}.q-t12{grid-area:t12}
+  .q-t13{grid-area:t13}.q-t14{grid-area:t14}
+
+  .qt {
+    display: flex; align-items: center; justify-content: center;
+    gap: .42em; min-width: 0; overflow: hidden;
+    padding: .3em .5em;
+    background: transparent; color: var(--text-dim);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: inherit; font-size: clamp(.6rem, 1.9cqi, .7rem);
+    font-weight: 500; line-height: 1.15; text-align: center;
+    cursor: pointer;
+    transition: color .15s ease, border-color .15s ease, background-color .15s ease;
+  }
+  .qt span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .qt:hover { border-color: var(--text-faint); color: var(--text); }
+  .qt.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  /* SVG: fill/stroke = currentColor, shuning uchun rang tugmadan meros bo'ladi —
+     hover/on holatda ikonka ham o'zi bilan birga o'zgaradi, alohida qoida kerak emas. */
+  .qt svg { display: block; flex: none; stroke: currentColor; fill: none; }
+  /* katta katak: ikonka tepada, yozuv pastda. em → root clamp bilan o'sadi */
+  .qt.big { flex-direction: column; gap: .5em; }
+  .qt.big svg { width: 1.9em; height: 1.9em; }
+  /* faqat-ikonka katak: o'lcham katakning foizi — px yo'q, cheksiz miqyoslanadi */
+  .qt.ico svg { width: 44%; height: auto; }
+
+  @media (prefers-reduced-motion: reduce) { .qt { transition: none; } }
+
+  #gate {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 14px 14px;
+  }
+
+  #content { display: none; }
+
+  /* ---- tab'lar ---- */
+  .tabs { display: flex; gap: 3px; padding: 10px 14px 0; }
+  .tab {
+    background: transparent; border: 1px solid transparent; color: var(--text-faint);
+    font-family: inherit; font-size: .8rem; font-weight: 600; letter-spacing: .01em;
+    padding: 6px 13px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; cursor: pointer;
+  }
+  .tab:hover { color: var(--text-dim); }
+  .tab.active { color: var(--accent); background: rgba(127, 224, 160, .06); border-color: var(--border-soft); border-bottom-color: transparent; }
+  .tab-line { height: 1px; background: var(--border-soft); margin: 0 14px; }
+
+  /* ---- dars jadvali: ixcham grid, katakka bosib to'g'ridan-to'g'ri tahrirlanadi ---- */
+  .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -3px; }
+  table.jadval { border-collapse: collapse; width: 100%; min-width: 600px; font-size: .82rem; }
+  table.jadval th, table.jadval td { border: 1px solid var(--border-soft); padding: 0; }
+  table.jadval th {
+    background: rgba(255, 255, 255, .02); color: var(--text-dim); font-weight: 600;
+    font-size: .7rem; letter-spacing: .02em; text-transform: uppercase;
+    padding: 8px 8px; text-align: left; white-space: nowrap;
+  }
+  td.rownum {
+    color: var(--text-faint); text-align: center; width: 24px;
+    background: rgba(255, 255, 255, .012); font-variant-numeric: tabular-nums; font-size: .76rem;
+  }
+  .cell {
+    min-width: 78px; padding: 7px 8px; color: var(--text); outline: none; cursor: text;
+    white-space: pre-wrap; word-break: break-word; line-height: 1.4; min-height: 1.4em;
+    transition: background-color .12s ease;
+  }
+  .cell:hover { background: rgba(255, 255, 255, .02); }
+  .cell:focus { background: var(--accent-dim); box-shadow: inset 0 0 0 1px var(--accent); }
+  /* Bo'sh katakda hech qanday matn yo'q (placeholder ham). Bosiladigan joy ekanini faqat rang bilan bildiramiz. */
+  .cell.tcell:empty { background: rgba(255, 255, 255, .018); }
+  /* vaqt ustuni: tepada boshlanish, pastda tugash (ikkalasi ham oddiy tahrirlanadigan katak), yonida hisoblangan tanaffus */
+  th.timecol { width: 92px; }
+  td.timecell { background: rgba(255, 255, 255, .012); }
+  .timebox { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 3px 6px; }
+  .timebox .stack { display: flex; flex-direction: column; }
+  .cell.tcell {
+    min-width: 0; width: 3.7em; padding: 3px 2px; text-align: center;
+    font-size: .78rem; line-height: 1.3; font-variant-numeric: tabular-nums;
+  }
+  .brk { min-width: 1.9em; font-size: .68rem; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+  .jadval-state { font-size: .74rem; color: var(--text-faint); padding: 9px 5px 0; min-height: 1.3em; }
+  .jadval-state.saving { color: var(--text-dim); }
+  .jadval-state.saved { color: var(--accent); }
+  .jadval-state.err { color: var(--red); }
+
+  @media (max-width: 420px) {
+    .entry { flex-direction: column; gap: 2px; padding-left: 10px; }
+    .ts { width: auto; }
+    .day-count { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      transition-duration: .001ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="card">
+    <div class="topbar">
+      <a class="home-link" id="homeLink" href="/" aria-label="LifeMR home">
+        <img class="badge" src="/logo/logo.svg" alt="" width="16" height="16">
+      </a>
+      <h1><b>LifeMR</b><span class="path">~/life</span><span class="live-dot" aria-hidden="true"></span></h1>
+    </div>
+
+    <div id="gate">
+      <div class="state" id="gateState">checking...</div>
+      <form id="loginForm" style="display:none" autocomplete="off">
+        <input type="email" class="inp" id="emailInput" placeholder="Email" autocomplete="off" required>
+        <input type="password" class="inp" id="passInput" placeholder="Password" autocomplete="off" required>
+        <button type="submit" id="passBtn">Sign in</button>
+      </form>
+    </div>
+
+    <div id="content">
+      <div class="tabs" id="tabs">
+        <button type="button" class="tab active" data-tab="status">status</button>
+        <button type="button" class="tab" data-tab="jadval">schedule</button>
+      </div>
+      <div class="tab-line"></div>
+
+      <div class="card-body" id="panelStatus">
+      <div class="week" id="week" hidden>
+        <div class="week-dots" id="weekDots"></div>
+        <div class="week-note" id="weekNote"></div>
+      </div>
+      <div class="nudge" id="nudge" hidden></div>
+
+      <form id="statusForm">
+        <div class="tagfield">
+          <div class="tf-hl" id="tfHl" aria-hidden="true"><span id="tfHlIn"></span></div>
+          <input type="text" class="inp tf-input" id="holatInput" placeholder="write how you are..." autocomplete="off" spellcheck="false" maxlength="490" required>
+        </div>
+        <button type="submit" id="submitBtn">send</button>
+      </form>
+      <div class="qwrap">
+        <div class="qbox" id="qbox" role="group" aria-label="quick entry">
+        <div class="qgrid" id="qgrid">
+
+          <button type="button" class="qt big q-big1" data-t="home from school" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 7.4V5.9a2.5 2.5 0 0 1 5 0v1.5"/><path d="M4.8 11.4A4 4 0 0 1 8.8 7.4h6.4a4 4 0 0 1 4 4V18a2.6 2.6 0 0 1-2.6 2.6H7.4A2.6 2.6 0 0 1 4.8 18z"/><path d="M9.2 15.2h5.6"/></svg>
+            <span>home from school</span>
+          </button>
+
+          <button type="button" class="qt big q-big2" data-t="coding" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 8.5 4.5 12l4 3.5"/><path d="M15.5 8.5 19.5 12l-4 3.5"/><path d="M13.6 6.2 10.4 17.8"/></svg>
+            <span>coding</span>
+          </button>
+
+          <button type="button" class="qt ico q-i1" data-t="going to sleep" title="going to sleep" aria-label="going to sleep" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.2 14.8A8.6 8.6 0 0 1 9.2 3.8a8.6 8.6 0 1 0 11 11z"/></svg>
+          </button>
+
+          <button type="button" class="qt ico q-i2" data-t="eating" title="eating" aria-label="eating" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12h17"/><path d="M4.6 12a7.4 7.4 0 0 0 14.8 0"/><path d="M9.4 8c0-1.3 1.2-1.4 1.2-2.7S9.4 3.4 9.4 3.4"/><path d="M14.6 8c0-1.3 1.2-1.4 1.2-2.7s-1.2-1.9-1.2-1.9"/></svg>
+          </button>
+
+          <button type="button" class="qt ico q-i3" data-t="workout" title="workout" aria-label="workout" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.8 8.2v7.6"/><path d="M4 10.2v3.6"/><path d="M17.2 8.2v7.6"/><path d="M20 10.2v3.6"/><path d="M6.8 12h10.4"/></svg>
+          </button>
+
+          <button type="button" class="qt ico q-i4" data-t="reading" title="reading" aria-label="reading" aria-pressed="false">
+            <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7.6C10.5 6.1 8 5.5 4.6 5.5v12c3.4 0 5.9.6 7.4 2.1"/><path d="M12 7.6c1.5-1.5 4-2.1 7.4-2.1v12c-3.4 0-5.9.6-7.4 2.1"/><path d="M12 7.6v12"/></svg>
+          </button>
+
+          <button type="button" class="qt q-t1" data-t="new project" aria-pressed="false"><span>new project</span></button>
+          <button type="button" class="qt q-t2" data-t="did homework" aria-pressed="false"><span>did homework</span></button>
+          <button type="button" class="qt q-t3" data-t="wasted time on the phone" aria-pressed="false"><span>wasted time on the phone</span></button>
+          <button type="button" class="qt q-t4" data-t="tired" aria-pressed="false"><span>tired</span></button>
+          <button type="button" class="qt q-t5" data-t="focused" aria-pressed="false"><span>focused</span></button>
+          <button type="button" class="qt q-t6" data-t="bored" aria-pressed="false"><span>bored</span></button>
+          <button type="button" class="qt q-t7" data-t="feeling good" aria-pressed="false"><span>feeling good</span></button>
+          <button type="button" class="qt q-t8" data-t="stuck on a bug" aria-pressed="false"><span>stuck on a bug</span></button>
+
+          <button type="button" class="qt q-t9" data-t="woke up" aria-pressed="false"><span>woke up</span></button>
+          <button type="button" class="qt q-t10" data-t="going to school" aria-pressed="false"><span>going to school</span></button>
+          <button type="button" class="qt q-t11" data-t="fixed a bug" aria-pressed="false"><span>fixed a bug</span></button>
+          <button type="button" class="qt q-t12" data-t="pushed code" aria-pressed="false"><span>pushed code</span></button>
+          <button type="button" class="qt q-t13" data-t="stressed" aria-pressed="false"><span>stressed</span></button>
+          <button type="button" class="qt q-t14" data-t="with friends" aria-pressed="false"><span>with friends</span></button>
+
+        </div>
+        </div>
+      </div>
+      <div class="chips energy" id="energyChips" role="group" aria-label="energy">
+        <span class="lbl">energy</span>
+        <button type="button" class="chip" data-e="1">1</button>
+        <button type="button" class="chip" data-e="2">2</button>
+        <button type="button" class="chip" data-e="3">3</button>
+        <button type="button" class="chip" data-e="4">4</button>
+        <button type="button" class="chip" data-e="5">5</button>
+      </div>
+
+      <div id="formState" class="state"></div>
+      <div class="divider"></div>
+      <div id="log">
+        <div class="state">loading...</div>
+      </div>
+      <div class="state hint">tap a day to open its statuses · <button type="button" id="logoutBtn" class="linkbtn">sign out</button></div>
+      </div>
+
+      <div class="card-body" id="panelJadval" hidden>
+        <div class="grid-wrap">
+          <table class="jadval">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="timecol" title="Lesson start and end">Time</th>
+                <th title="Monday">Mon</th>
+                <th title="Tuesday">Tue</th>
+                <th title="Wednesday">Wed</th>
+                <th title="Thursday">Thu</th>
+                <th title="Friday">Fri</th>
+                <th title="Saturday">Sat</th>
+              </tr>
+            </thead>
+            <tbody id="jadvalBody"></tbody>
+          </table>
+        </div>
+        <div class="jadval-state" id="jadvalState"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  const logEl = document.getElementById('log');
+  const formEl = document.getElementById('statusForm');
+  const inputEl = document.getElementById('holatInput');
+  const btnEl = document.getElementById('submitBtn');
+  const formStateEl = document.getElementById('formState');
+  const contentEl = document.getElementById('content');
+  const gateEl = document.getElementById('gate');
+  const gateStateEl = document.getElementById('gateState');
+  const passInputEl = document.getElementById('passInput');
+  const passBtnEl = document.getElementById('passBtn');
+  const emailInputEl = document.getElementById('emailInput');
+  const loginFormEl = document.getElementById('loginForm');
+  const logoutBtnEl = document.getElementById('logoutBtn');
+
+  // Header ikonka: ildizda (/) bo'lsak bosish hech narsani o'zgartirmaydi (reload ham yo'q),
+  // boshqa sahifada (/mcp va h.k.) oddiy havola sifatida "/" ga o'tadi, target=_blank emas.
+  const homeLinkEl = document.getElementById('homeLink');
+  const onRoot = ['/', '/index.html'].includes(location.pathname);
+  if (onRoot) homeLinkEl.setAttribute('aria-current', 'page');
+  homeLinkEl.addEventListener('click', (e) => { if (onRoot) e.preventDefault(); });
+
+  function esc(s) {
+    const d = document.createElement('div');
+    d.innerText = s;
+    return d.innerHTML;
+  }
+
+  // ---- TEG QATLAMI ----
+  // Teg = "#" bilan boshlangan so'z (harf/raqam/_ va ichida - yoki '). Bo'shliq tegni tugatadi.
+  // "#" so'z boshida turishi shart (ya'ni "a#b" teg emas). Tegli matn alohida joyda saqlanmaydi:
+  // status matnining o'zida "#eating i eat bread" bo'lib yotadi.
+  const TAG_BODY = "#[\\p{L}\\p{N}_]+(?:[-'\u2019\u02BB\u02BC][\\p{L}\\p{N}_]+)*";
+  const TAG_RE = new RegExp('(^|\\s)(' + TAG_BODY + ')', 'gu');
+  const LEAD_RE = new RegExp('^(?:\\s*' + TAG_BODY + ')*', 'u');
+
+  // matn -> HTML: teglar <span class="tag"> ichida (input ko'zgusida ham, tarixda ham shu ishlaydi)
+  function renderTags(text) {
+    let out = '', last = 0;
+    for (const m of text.matchAll(TAG_RE)) {
+      const start = m.index + m[1].length;
+      out += esc(text.slice(last, start)) + `<span class="tag">${esc(m[2])}</span>`;
+      last = start + m[2].length;
+    }
+    return out + esc(text.slice(last));
+  }
+
+  // ---- ODAT QATLAMI ----
+  // Kun chegarasi (guide bilan bir xil): 00:00-04:59 dagi yozuv oldingi kunning davomi.
+  const pad2 = n => String(n).padStart(2, '0');
+  const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const WD = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+  function logicalDay(d) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (d.getHours() < 5) x.setDate(x.getDate() - 1);
+    return x;
+  }
+
+  function dayKeyOf(vaqt) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/.exec(vaqt || '');
+    if (!m) return null;
+    return ymd(logicalDay(new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])));
+  }
+
+  let prevTodayHas = null; // bugungi nuqta yangi to'lganda bir marta animatsiya qilish uchun
+
+  function updateHabit(docs) {
+    const weekEl = document.getElementById('week');
+    const dotsEl = document.getElementById('weekDots');
+    const noteEl = document.getElementById('weekNote');
+    const nudgeEl = document.getElementById('nudge');
+    const now = new Date();
+
+    // kunlar bo'yicha sanash + energiya belgilari (:1-:5)
+    const perDay = new Map();
+    const marks = new Map(); // kun -> [energiya]
+    for (const d of docs) {
+      const f = d.data();
+      const k = dayKeyOf(f.vaqt);
+      if (!k) continue;
+      perDay.set(k, (perDay.get(k) || 0) + 1);
+      const m = /\s:([1-5])\s*$/.exec(f.holat || '');
+      if (m) { if (!marks.has(k)) marks.set(k, []); marks.get(k).push(+m[1]); }
+    }
+
+    // oxirgi 7 mantiqiy kun (eskisi chapda, bugun o'ngda)
+    const today = logicalDay(now);
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today); d.setDate(d.getDate() - i);
+      days.push({ key: ymd(d), wd: WD[d.getDay()], isToday: i === 0 });
+    }
+    const todayHas = (perDay.get(days[6].key) || 0) > 0;
+    dotsEl.innerHTML = days.map(x => {
+      const on = (perDay.get(x.key) || 0) > 0;
+      const pop = x.isToday && on && prevTodayHas === false ? ' pop' : '';
+      return `<div class="wd${on ? ' on' : ''}${x.isToday ? ' today' : ''}${pop}" title="${x.key}"><i></i><span>${x.wd}</span></div>`;
+    }).join('');
+    prevTodayHas = todayHas;
+
+    const n = days.filter(x => perDay.get(x.key)).length;
+    const vals = days.flatMap(x => marks.get(x.key) || []);
+    let note = `${n}/7 days`;
+    if (vals.length >= 3) note += ` · energy ~${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)}`;
+    noteEl.textContent = note;
+    weekEl.hidden = false;
+
+    // eslatma: faqat sening tanish paytlaringda (maktabdan keyin, kech kechqurun), bosimsiz
+    let last = null;
+    if (docs.length) {
+      const ts = docs[0].data().timestamp;
+      last = ts && ts.toDate ? ts.toDate() : now;
+    }
+    const hrs = last ? (now - last) / 36e5 : Infinity;
+    const h = now.getHours();
+    let msg = '';
+    if (now.getDay() !== 0 && h >= 13 && h < 17 && hrs > 4) msg = 'home yet? write one status.';
+    else if (h >= 20 && h < 23 && hrs > 3) msg = 'close the day: write one sentence.';
+    nudgeEl.hidden = !msg;
+    nudgeEl.textContent = msg;
+  }
+
+  // tez yozish: energiya belgisi yuborishda ' :N' bo'lib qo'shiladi
+  let energy = 0;
+
+  // Bento grid. Yagona haqiqat manbai — input matni, tugmalarda alohida state yo'q:
+  // tugma bosilsa input'ga "#teg" qo'shiladi (bo'shliqlar chiziqchaga: "home from school" -> #home-from-school),
+  // qayta bosilsa o'sha teg olib tashlanadi. Qo'lda "#coding" deb yozsang ham tugma o'zi yonadi.
+  const qgridEl = document.getElementById('qgrid');
+  const hlInEl = document.getElementById('tfHlIn');
+  const slug = (s) => s.trim().toLowerCase().replace(/\s+/g, '-');
+  const tileTag = (b) => '#' + slug(b.dataset.t);
+  const tagsIn = (v) => new Set([...v.matchAll(TAG_RE)].map(m => m[2].toLowerCase()));
+
+  // teg qo'shish: boshidagi tegler qatorining oxiriga, keyin foydalanuvchi yozadigan joy uchun bitta bo'shliq
+  function addTag(v, tag) {
+    const run = LEAD_RE.exec(v)[0];
+    const rest = v.slice(run.length).replace(/^\s+/, '');
+    return (run.trim() ? run.trim() + ' ' : '') + tag + ' ' + rest;
+  }
+  const removeTag = (v, tag) =>
+    v.replace(TAG_RE, (m, pre, t) => t.toLowerCase() === tag ? '' : m).replace(/^\s+/, '');
+
+  // input matni o'zgarganda: tugmalar holati + ko'zgu (bo'yalgan teglar) + gorizontal scroll sinxroni
+  function paintHl() {
+    hlInEl.innerHTML = renderTags(inputEl.value);
+    hlInEl.style.transform = `translateX(${-inputEl.scrollLeft}px)`;
+  }
+  function syncTiles() {
+    const have = tagsIn(inputEl.value);
+    qgridEl.querySelectorAll('.qt').forEach(b => {
+      const on = have.has(tileTag(b));
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    paintHl();
+  }
+
+  qgridEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.qt'); if (!b) return;
+    const tag = tileTag(b);
+    inputEl.value = tagsIn(inputEl.value).has(tag) ? removeTag(inputEl.value, tag) : addTag(inputEl.value, tag);
+    inputEl.focus();
+    inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+    syncTiles();
+  });
+
+  // Uzun matnda input o'zi gorizontal suriladi; ko'zgu ham xuddi shunday surilishi kerak.
+  ['scroll', 'keyup', 'click', 'select', 'focus'].forEach(ev => inputEl.addEventListener(ev, paintHl));
+  document.addEventListener('selectionchange', () => { if (document.activeElement === inputEl) paintHl(); });
+  inputEl.addEventListener('input', syncTiles);
+  document.getElementById('energyChips').addEventListener('click', (e) => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    const v = +b.dataset.e;
+    energy = energy === v ? 0 : v;
+    document.querySelectorAll('#energyChips .chip').forEach(c => c.classList.toggle('on', +c.dataset.e === energy));
+    document.getElementById('holatInput').focus();
+  });
+  function resetEnergy() {
+    energy = 0;
+    document.querySelectorAll('#energyChips .chip').forEach(c => c.classList.remove('on'));
+  }
+
+  // Bir vaqtda faqat bitta kun ochiq turadi (accordion).
+  // openSana = hozir ochiq turgan kunning sanasi, yoki hech qaysi ochiq bo'lmasa null.
+  let openSana = null;
+  let dayObserver = null;
+
+  // Kunni animatsiya bilan ochish: max-height ni 0 dan haqiqiy balandlikkacha o'tkazamiz —
+  // shunda transition CSS'dagi "smooth" effekt beradi, sakrash bo'lmaydi.
+  function openDay(dayEl) {
+    const entries = dayEl.querySelector('.day-entries');
+    dayEl.classList.add('open');
+    entries.style.maxHeight = entries.scrollHeight + 'px';
+  }
+
+  // Kunni animatsiya bilan yopish.
+  function closeDay(dayEl) {
+    const entries = dayEl.querySelector('.day-entries');
+    // avval hozirgi balandlikni "qattiq" raqam qilib qo'yamiz (auto emas),
+    // shundagina 0 ga transition silliq ishlaydi
+    entries.style.maxHeight = entries.scrollHeight + 'px';
+    requestAnimationFrame(() => {
+      entries.style.maxHeight = '0px';
+      dayEl.classList.remove('open');
+    });
+  }
+
+  // Ochiq turgan kun scroll bilan ekrandan butunlay chiqib ketsa — avtomatik yopamiz.
+  // IntersectionObserver = elementning ekranda ko'rinib-ko'rinmasligini kuzatuvchi vosita.
+  function setupDayObserver() {
+    if (dayObserver) dayObserver.disconnect();
+    dayObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        const sana = entry.target.dataset.sana;
+        if (!entry.isIntersecting && sana === openSana) {
+          closeDay(entry.target);
+          openSana = null;
+        }
+      });
+    }, { threshold: 0 });
+    logEl.querySelectorAll('.day').forEach(el => dayObserver.observe(el));
+  }
+
+  function render(docs) {
+    updateHabit(docs);
+    if (docs.length === 0) {
+      logEl.innerHTML = `<div class="state">no entries yet.</div>`;
+      return;
+    }
+
+    // 1) yozuvlarni sana bo'yicha guruhlaymiz
+    const kunlar = new Map(); // sana -> [{soat, holat}]
+    for (const d of docs) {
+      const f = d.data();
+      const vaqt = f.vaqt || '';
+      const [sana, soat] = vaqt.includes(' ') ? vaqt.split(' ') : [vaqt, ''];
+      if (!kunlar.has(sana)) kunlar.set(sana, []);
+      kunlar.get(sana).push({ soat, holat: f.holat || '' });
+    }
+
+    // 2) har bir kun uchun yopiq qator + ichida (yashirin) yozuvlar ro'yxati
+    let html = '';
+    for (const [sana, yozuvlar] of kunlar) {
+      html += `<div class="day" data-sana="${esc(sana)}">`;
+      html += `<div class="day-row">`;
+      html += `<div class="day-date">${esc(sana)}</div>`;
+      html += `<div class="day-count">${yozuvlar.length} status${yozuvlar.length === 1 ? '' : 'es'}</div>`;
+      html += `<div class="day-arrow">›</div>`;
+      html += `</div>`;
+      html += `<div class="day-entries">`;
+      for (const y of yozuvlar) {
+        html += `<div class="entry"><div class="ts">${esc(y.soat)}</div><div class="holat">${renderTags(y.holat)}</div></div>`;
+      }
+      html += `</div></div>`;
+    }
+    logEl.innerHTML = html;
+
+    // Yangi status kelib qayta chizilganda, agar biror kun ochiq bo'lsa —
+    // uni animatsiyasiz, darhol ochiq holatda tiklaymiz (jump/glitch bo'lmasin uchun).
+    if (openSana) {
+      const dayEl = logEl.querySelector(`.day[data-sana="${CSS.escape(openSana)}"]`);
+      if (dayEl) {
+        const entries = dayEl.querySelector('.day-entries');
+        entries.style.transition = 'none';
+        dayEl.classList.add('open');
+        entries.style.maxHeight = entries.scrollHeight + 'px';
+        void entries.offsetHeight; // reflow'ni majburlab, transitionni xavfsiz qaytaramiz
+        entries.style.transition = '';
+      } else {
+        openSana = null;
+      }
+    }
+
+    setupDayObserver();
+  }
+
+  // Qator bosilganda — bitta kun ochiladi, oldin ochiq turgani bo'lsa avtomatik yopiladi.
+  logEl.addEventListener('click', (e) => {
+    const row = e.target.closest('.day-row');
+    if (!row) return;
+    const dayEl = row.closest('.day');
+    const sana = dayEl.dataset.sana;
+
+    if (openSana === sana) {
+      closeDay(dayEl);
+      openSana = null;
+      return;
+    }
+
+    if (openSana) {
+      const prevEl = logEl.querySelector(`.day[data-sana="${CSS.escape(openSana)}"]`);
+      if (prevEl) closeDay(prevEl);
+    }
+    openDay(dayEl);
+    openSana = sana;
+  });
+
+  // ---- DARS JADVALI: ixcham grid, katakka bosib yoziladi, 5s jimlikdan keyin avto-saqlanadi ----
+  const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const ROWS = 8;
+  const tabsEl = document.getElementById('tabs');
+  const panelStatusEl = document.getElementById('panelStatus');
+  const panelJadvalEl = document.getElementById('panelJadval');
+  const jadvalBodyEl = document.getElementById('jadvalBody');
+  const jadvalStateEl = document.getElementById('jadvalState');
+
+  // Vaqt kataklari kunlar bilan bir xil `.cell`: bir xil saqlanadi/yuklanadi (kalitlari start_<n>, end_<n>).
+  // Kodda hech qanday qiymat yo'q: vaqtlar ham, matnlar ham faqat Firestore'dan keladi.
+
+  (function buildJadvalGrid() {
+    let html = '';
+    for (let i = 1; i <= ROWS; i++) {
+      html += `<tr><td class="rownum">${i}</td>`;
+      html += `<td class="timecell"><div class="timebox"><div class="stack">`
+        + `<div class="cell tcell" contenteditable="true" data-key="start_${i}" aria-label="lesson ${i} start"></div>`
+        + `<div class="cell tcell" contenteditable="true" data-key="end_${i}" aria-label="lesson ${i} end"></div>`
+        + `</div><span class="brk" data-brk="${i}" title="break until next lesson (minutes)"></span></div></td>`;
+      for (const d of DAYS) html += `<td><div class="cell" contenteditable="true" data-key="${d}_${i}"></div></td>`;
+      html += '</tr>';
+    }
+    jadvalBodyEl.innerHTML = html;
+  })();
+
+  let jadvalLoaded = false;
+  let jadvalTimer = null;
+  let jadvalDirty = false;
+  let jadvalSaving = false;
+
+  const cellEl = (k) => jadvalBodyEl.querySelector(`.cell[data-key="${k}"]`);
+  const toMin = (str) => {
+    const m = /^(\d{1,2})[:.](\d{2})$/.exec((str || '').trim());
+    if (!m || +m[1] > 23 || +m[2] > 59) return null;
+    return +m[1] * 60 + +m[2];
+  };
+
+  // "+5" belgisi hisoblanadi (saqlanmaydi): shu darsning tugashi bilan keyingi dars boshlanishi orasidagi farq.
+  // Vaqtni o'zgartirsang, belgi ham o'zi o'zgaradi. Keyingi dars yo'q yoki vaqt noto'g'ri bo'lsa, bo'sh.
+  function updateBreaks() {
+    for (let i = 1; i <= ROWS; i++) {
+      const el = jadvalBodyEl.querySelector(`[data-brk="${i}"]`);
+      if (!el) continue;
+      const end = toMin(cellEl(`end_${i}`)?.textContent);
+      const next = toMin(cellEl(`start_${i + 1}`)?.textContent);
+      const gap = end != null && next != null ? next - end : null;
+      el.textContent = gap != null && gap > 0 && gap <= 120 ? `+${gap}` : '';
+    }
+  }
+
+  function markJadvalDirty() {
+    jadvalDirty = true;
+    jadvalStateEl.textContent = 'editing...';
+    jadvalStateEl.className = 'jadval-state';
+    if (jadvalTimer) clearTimeout(jadvalTimer);
+    jadvalTimer = setTimeout(saveJadval, 5000);
+  }
+
+  tabsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.tab');
+    if (!b) return;
+    tabsEl.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === b));
+    const showJadval = b.dataset.tab === 'jadval';
+    panelStatusEl.hidden = showJadval;
+    panelJadvalEl.hidden = !showJadval;
+    if (showJadval) loadJadval(jadvalLoaded);
+  });
+
+  function readJadvalCells() {
+    const cells = {};
+    jadvalBodyEl.querySelectorAll('.cell').forEach(el => {
+      const v = el.textContent.trim();
+      if (v) cells[el.dataset.key] = v;
+    });
+    return cells;
+  }
+
+  // silent=true: fon yangilash (Claude jadvalni o'zgartirgan bo'lishi mumkin). Yozilayotgan yoki saqlanayotgan
+  // bo'lsa, ustidan yozmaydi, chunki sayt saqlashda butun gridni yuboradi.
+  async function loadJadval(silent) {
+    if (!unlocked) return;
+    jadvalLoaded = true;
+    if (!silent) {
+      jadvalStateEl.textContent = 'loading...';
+      jadvalStateEl.className = 'jadval-state';
+    }
+    try {
+      const { r, data } = await api('/api/jadval');
+      if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
+      if (!r.ok) throw new Error(data.error || r.status);
+      if (jadvalDirty || jadvalSaving) return;
+      const cells = data.cells || {};
+      jadvalBodyEl.querySelectorAll('.cell').forEach(el => {
+        const v = cells[el.dataset.key] || '';
+        if (el.textContent !== v) el.textContent = v;
+      });
+      updateBreaks();
+      if (!silent) jadvalStateEl.textContent = '';
+    } catch (err) {
+      if (silent) return;
+      jadvalStateEl.textContent = `error: ${err.message || err}`;
+      jadvalStateEl.className = 'jadval-state err';
+    }
+  }
+
+  // Jadval tab'i ochiq tursa, har 10 soniyada jimgina yangilanadi (Claude o'zgartirsa ko'rinadi).
+  setInterval(() => {
+    if (!unlocked || panelJadvalEl.hidden || document.hidden) return;
+    if (jadvalDirty || jadvalSaving || document.activeElement?.closest?.('.cell')) return;
+    loadJadval(true);
+  }, 10000);
+
+  async function saveJadval() {
+    if (jadvalSaving) { jadvalTimer = setTimeout(saveJadval, 1000); return; }
+    jadvalSaving = true;
+    jadvalDirty = false;
+    jadvalStateEl.textContent = 'saving...';
+    jadvalStateEl.className = 'jadval-state saving';
+    try {
+      const { r, data } = await api('/api/jadval', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cells: readJadvalCells() }),
+      });
+      if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
+      if (!r.ok) throw new Error(data.error || r.status);
+      jadvalStateEl.textContent = 'saved ✓';
+      jadvalStateEl.className = 'jadval-state saved';
+    } catch (err) {
+      jadvalStateEl.textContent = `not saved: ${err.message || err} — retrying`;
+      jadvalStateEl.className = 'jadval-state err';
+      jadvalDirty = true;
+      jadvalTimer = setTimeout(saveJadval, 5000);
+    } finally {
+      jadvalSaving = false;
+    }
+  }
+
+  jadvalBodyEl.addEventListener('input', (e) => {
+    if (!e.target.closest('.cell')) return;
+    updateBreaks();
+    markJadvalDirty();
+  });
+
+  // Enter — keyingi qatorga tushirmaydi, shunchaki katakdan chiqadi (jadval bir qatorli bo'lib qolsin).
+  jadvalBodyEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.closest('.cell')) { e.preventDefault(); e.target.blur(); }
+  });
+
+  // Sahifadan chiqishda hali saqlanmagan o'zgarish bo'lsa, oxirgi holatni beacon bilan yuboramiz.
+  window.addEventListener('pagehide', () => {
+    if (jadvalDirty && unlocked) {
+      try {
+        navigator.sendBeacon('/api/jadval', new Blob([JSON.stringify({ cells: readJadvalCells() })], { type: 'application/json' }));
+      } catch { /* beacon ishlamasa ham sahifa yopilishini to'xtatmaymiz */ }
+    }
+  });
+
+  // ---- AUTH OQIMI ----
+  // Login server orqali (/api/login): sayt ham, /mcp ham bitta eshikdan kiradi, IP hisobi ham bitta.
+  // Sessiya = serverdan kelgan httpOnly cookie. Brauzerda localStorage/sessionStorage/IndexedDB ishlatilmaydi,
+  // JavaScript cookie'ni o'qiy olmaydi. Email/parol hech qayerda saqlanmaydi.
+  let unlocked = false;
+  let pollTimer = null;
+  let loading = false;
+
+  const api = async (path, opts = {}) => {
+    const r = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...opts });
+    const data = await r.json().catch(() => ({}));
+    // IP bloklangan bo'lsa (istalgan so'rovda, ochiq turgan sessiyada ham) darhol bloklangan ekran + orqaga sanash.
+    if (r.status === 403 && data.error === 'bloklangan') showBlocked(data);
+    return { r, data };
+  };
+
+  function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+  function showGate(msg = 'Sign in', kind = '') {
+    unlocked = false;
+    stopPolling();
+    contentEl.style.display = 'none';
+    gateEl.style.display = 'flex';
+    loginFormEl.style.display = 'flex';
+    gateStateEl.textContent = msg;
+    gateStateEl.className = 'state' + (kind ? ' ' + kind : '');
+    logEl.innerHTML = '';
+    prevTodayHas = null;
+    emailInputEl.value = '';
+    passInputEl.value = '';
+    emailInputEl.focus();
+    if (jadvalTimer) { clearTimeout(jadvalTimer); jadvalTimer = null; }
+    jadvalLoaded = false;
+    jadvalDirty = false;
+    tabsEl.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'status'));
+    panelStatusEl.hidden = false;
+    panelJadvalEl.hidden = true;
+  }
+
+  // Qolgan soniyani odam o'qiydigan ko'rinishga o'giradi: "1 yil 12 kun 3 soat 20 daqiqa 15 soniya"
+  function fmtLeft(total) {
+    let s = Math.max(0, Math.floor(total));
+    const Y = 31536000, D = 86400;
+    const y = Math.floor(s / Y); s -= y * Y;
+    const d = Math.floor(s / D); s -= d * D;
+    const hh = Math.floor(s / 3600); s -= hh * 3600;
+    const mm = Math.floor(s / 60); s -= mm * 60;
+    const parts = [];
+    if (y) parts.push(`${y} year${y === 1 ? '' : 's'}`);
+    if (d) parts.push(`${d} day${d === 1 ? '' : 's'}`);
+    if (hh) parts.push(`${hh} hour${hh === 1 ? '' : 's'}`);
+    if (mm) parts.push(`${mm} minute${mm === 1 ? '' : 's'}`);
+    parts.push(`${s} second${s === 1 ? '' : 's'}`);
+    return parts.join(' ');
+  }
+
+  // Blok IP bo'yicha serverda turadi, shuning uchun sahifani yangilasang ham, boshqa brauzer yoki qurilmadan
+  // kirsang ham (shu IP'dan) qolgan vaqt server javobidan qayta olinadi va orqaga sanash davom etadi.
+  let blockTimer = null;
+  function showBlocked(info = {}) {
+    unlocked = false;
+    stopPolling();
+    if (blockTimer) { clearInterval(blockTimer); blockTimer = null; }
+    contentEl.style.display = 'none';
+    gateEl.style.display = 'flex';
+    loginFormEl.style.display = 'none';
+    gateStateEl.className = 'state err';
+    if (info.permanent || !Number.isFinite(info.retry_after_sec)) {
+      gateStateEl.textContent = 'Your IP is blocked';
+      return;
+    }
+    // Faqat farqdan foydalanamiz (serverdan kelgan qolgan soniya + brauzerdagi o'tgan vaqt): brauzer soati noto'g'ri bo'lsa ham xato bo'lmaydi.
+    const endAt = performance.now() + info.retry_after_sec * 1000;
+    const tick = () => {
+      const left = Math.ceil((endAt - performance.now()) / 1000);
+      if (left <= 0) {
+        clearInterval(blockTimer); blockTimer = null;
+        recheckAfterBlock();
+        return;
+      }
+      gateStateEl.textContent = `Your IP is blocked. Unlocks in: ${fmtLeft(left)}`;
+    };
+    tick();
+    blockTimer = setInterval(tick, 1000);
+  }
+
+  // Sanash tugadi: serverdan holatni so'raymiz. Ochilgan bo'lsa saytga (sessiya bor bo'lsa) yoki login formasiga qaytamiz.
+  async function recheckAfterBlock() {
+    try {
+      const { data } = await api('/api/login');
+      if (data.blocked) { showBlocked(data); return; }
+      if (data.authed) unlockApp(); else showGate();
+    } catch {
+      showBlocked({ retry_after_sec: 5 });
+    }
+  }
+
+  // Server yozuvlarini eski render() kutgan shaklga o'giramiz
+  const asDocs = (items) => items.map(x => ({
+    data: () => ({ vaqt: x.vaqt, holat: x.holat, timestamp: { toDate: () => new Date(x.ts || Date.now()) } })
+  }));
+
+  async function loadLog() {
+    if (loading || !unlocked) return;
+    loading = true;
+    try {
+      const { r, data } = await api('/api/checkins');
+      if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
+      if (!r.ok) throw new Error(data.error || r.status);
+      render(asDocs(data.items || []));
+    } catch (err) {
+      if (unlocked && !logEl.querySelector('.day')) {
+        logEl.innerHTML = `<div class="state err">error: data failed to load (${esc(String(err.message || err))})</div>`;
+      }
+    } finally {
+      loading = false;
+    }
+  }
+
+  function unlockApp() {
+    if (unlocked) return;
+    unlocked = true;
+    gateEl.style.display = 'none';
+    contentEl.style.display = 'block';
+    loadLog();
+    // "jonli" yangilanish: sahifa ochiq va ko'rinib turgan paytda har 10 soniyada
+    pollTimer = setInterval(() => { if (!document.hidden) loadLog(); }, 10000);
+  }
+
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && unlocked) loadLog(); });
+
+  loginFormEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = emailInputEl.value.trim();
+    const pass = passInputEl.value;
+    if (!email || !pass) return;
+
+    passBtnEl.disabled = true;
+    gateStateEl.textContent = 'checking...';
+    gateStateEl.className = 'state';
+    try {
+      const { r, data } = await api('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      emailInputEl.value = '';
+      passInputEl.value = '';
+      if (r.ok) { unlockApp(); return; }
+      if (r.status === 403) return; // api() bloklangan ekranni va orqaga sanashni allaqachon ko'rsatdi
+      let msg = "email or password is wrong";
+      if (r.status === 401 && data.unlimited) msg += ". Door is open, no limit: you can try again";
+      else if (r.status === 401 && data.attempts_left) msg += `. ${data.attempts_left} attempt${data.attempts_left === 1 ? '' : 's'} left`;
+      else if (r.status === 429) msg = "too many requests, try again in a few seconds";
+      else if (r.status >= 500) msg = `server error: ${data.error || r.status}`;
+      gateStateEl.textContent = msg;
+      gateStateEl.className = 'state err';
+    } catch {
+      passInputEl.value = '';
+      gateStateEl.textContent = "could not reach the server";
+      gateStateEl.className = 'state err';
+    } finally {
+      passBtnEl.disabled = false;
+    }
+  });
+
+  logoutBtnEl.addEventListener('click', async () => {
+    await api('/api/logout', { method: 'POST' }).catch(() => {});
+    showGate('signed out');
+  });
+
+  // Yangi yozuv (forma bir marta ulanadi)
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!unlocked) return;
+    let holat = inputEl.value.trim().replace(TAG_RE, (m, pre, t) => pre + t.toLowerCase());
+    if (!holat) return;
+    if (energy && !/\s:[1-5]$/.test(holat)) holat += ` :${energy}`;
+
+    btnEl.disabled = true;
+    formStateEl.textContent = '';
+    formStateEl.className = 'state';
+
+    try {
+      const { r, data } = await api('/api/checkins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ holat }),
+      });
+      if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
+      if (!r.ok) throw new Error(data.error || r.status);
+      inputEl.value = '';
+      syncTiles();
+      resetEnergy();
+      formStateEl.textContent = 'sent ✓';
+      formStateEl.className = 'state ok';
+      setTimeout(() => { formStateEl.textContent = ''; }, 2000);
+      loadLog();
+    } catch (err) {
+      formStateEl.textContent = `error: ${err.message}`;
+      formStateEl.className = 'state err';
+    } finally {
+      btnEl.disabled = false;
+      inputEl.focus();
+    }
+  });
+
+  // Ochilganda: sessiya cookie bormi / IP bloklanganmi?
+  (async () => {
+    try {
+      const { data } = await api('/api/login');
+      if (data.blocked) showBlocked(data);
+      else if (data.authed) unlockApp();
+      else showGate();
+    } catch {
+      showGate('could not reach the server', 'err');
+    }
+  })();
+</script>
+</body>
+</html>
