@@ -340,9 +340,9 @@
 
     <div id="gate">
       <div class="state" id="gateState">tekshirilmoqda...</div>
-      <form id="loginForm" style="display:none" autocomplete="on">
-        <input type="email" class="inp" id="emailInput" placeholder="email" autocomplete="username" required>
-        <input type="password" class="inp" id="passInput" placeholder="parol" autocomplete="current-password" required>
+      <form id="loginForm" style="display:none" autocomplete="off">
+        <input type="email" class="inp" id="emailInput" placeholder="email" autocomplete="off" required>
+        <input type="password" class="inp" id="passInput" placeholder="parol" autocomplete="off" required>
         <button type="submit" id="passBtn">kir</button>
       </form>
     </div>
@@ -386,13 +386,12 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getAnalytics, isSupported as analyticsSupported } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
   import {
     getFirestore, collection, addDoc, serverTimestamp,
     query, orderBy, limit, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import {
-    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+    initializeAuth, inMemoryPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
   // Your web app's Firebase configuration
@@ -403,16 +402,15 @@
     projectId: "mrabout",
     storageBucket: "mrabout.firebasestorage.app",
     messagingSenderId: "544262128836",
-    appId: "1:544262128836:web:f6c54edcaf50fa1c8eb591",
-    measurementId: "G-KLJNX0F23T"
+    appId: "1:544262128836:web:f6c54edcaf50fa1c8eb591"
   };
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const auth = getAuth(app);
+  // Sessiya faqat RAM'da: localStorage / sessionStorage / IndexedDB'ga hech narsa yozilmaydi (email ham, token ham).
+  // Sahifa yopilsa yoki yangilansa sessiya yo'qoladi, qayta kirasan.
+  const auth = initializeAuth(app, { persistence: inMemoryPersistence });
 
-  // Analytics faqat https/real domain'da ishlaydi, file:// yoki localhost'da jim tarzda o'chadi
-  analyticsSupported().then(ok => { if (ok) getAnalytics(app); }).catch(() => {});
 
   const logEl = document.getElementById('log');
   const formEl = document.getElementById('statusForm');

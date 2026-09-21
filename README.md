@@ -26,7 +26,7 @@ Ma'lumotni **Firestore rules** himoya qiladi: faqat ruxsat ro'yxatidagi ikkita F
 1. **Authentication → Sign-in method:** `Email/Password` ni yoq.
 2. **Authentication → Users → Add user** (ikkita akkaunt):
    - **OWNER:** sening emailing va uzun parol (16+ belgi, passphrase). Bu sayt va `/mcp` uchun.
-   - **CLAUDE:** masalan `claude-mcp@mrstatus.app` (email haqiqiy bo'lishi shart emas) va uzun tasodifiy parol (`openssl rand -hex 24`).
+   - **CLAUDE:** o'zing o'ylab topgan email (haqiqiy bo'lishi shart emas, hech qayerda yozib qo'yma, faqat Vercel env'da tursin) va uzun tasodifiy parol (`openssl rand -hex 24`).
 3. Users jadvalidagi ikkala **User UID**ni nusxala. `firestore.rules` ichidagi `OWNER_UID` va `CLAUDE_UID` o'rniga yoz, keyin **Firestore → Rules** ga qo'yib **Publish** qil.
 4. Hammasi ishlagandan keyin: **Sign-in method → Anonymous**ni o'chir va Firestore'dagi eski `config/access` hujjatini o'chir (kerak emas, rules uni baribir yopadi).
 

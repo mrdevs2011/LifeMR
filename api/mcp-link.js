@@ -9,9 +9,15 @@
 //
 // Env: FS_KEY, MCP_TOKEN, OWNER_EMAIL
 
+import { createHash, timingSafeEqual } from "node:crypto";
+
 const MAX_FAILS = 5;
 const LOCKOUT_MS = 60_000;
 const attempts = new Map(); // ip -> { fails, until }  (serverless: instance'da reset bo'ladi, Firebase'ning o'z limiti ham bor)
+
+// Email ikki tomonda ham SHA-256 hash qilinib, vaqt-xavfsiz solishtiriladi (oddiy === emas).
+const sha = (v) => createHash("sha256").update(String(v).trim().toLowerCase()).digest();
+const sameEmail = (a, b) => timingSafeEqual(sha(a), sha(b));
 
 function send(res, status, obj) {
   res.statusCode = status;
@@ -52,14 +58,24 @@ export default async function handler(req, res) {
     return send(res, 429, { error: "juda_kop_urinish", retry_after_sec: Math.ceil(wait / 1000) });
   }
 
-  let password;
+  let password, email;
   try {
     const body = await readJson(req);
     password = typeof body?.password === "string" ? body.password : "";
+    email = typeof body?.email === "string" ? body.email : "";
   } catch {
     return send(res, 400, { error: "noto'g'ri so'rov" });
   }
-  if (!password) return send(res, 400, { error: "parol kerak" });
+  if (!password || !email) return send(res, 400, { error: "email va parol kerak" });
+
+  // Kiritilgan email hash'i env'dagi email hash'i bilan solishtiriladi. Mos kelmasa Firebase'ga bormaymiz;
+  // xato xabari parol xatosi bilan bir xil (email sizib chiqmasin).
+  if (!sameEmail(email, process.env.OWNER_EMAIL)) {
+    rec.fails += 1;
+    if (rec.fails >= MAX_FAILS) { rec.fails = 0; rec.until = Date.now() + LOCKOUT_MS; }
+    attempts.set(ip, rec);
+    return send(res, 401, { error: "notogri_parol" });
+  }
 
   let r;
   try {
