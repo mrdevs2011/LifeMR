@@ -2,7 +2,7 @@
 //   GET  -> { blocked }
 //   POST { email, password } -> { url } | 401 | 403 | 429
 // Bu yerda sessiya cookie berilmaydi: connector URL'ini ko'rish uchun har safar qayta kirasan.
-import { authenticate, isBlocked, readJson, send } from "./_lib.js";
+import { authenticate, isBlocked, readJson, recordLogin, send } from "./_lib.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET") return send(res, 200, { blocked: await isBlocked(req) });
@@ -20,6 +20,7 @@ export default async function handler(req, res) {
   }
   const r = await authenticate(req, body?.email, body?.password);
   if (!r.ok) return send(res, r.status, r.body);
+  recordLogin();
 
   const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
   const host = req.headers["x-forwarded-host"] || req.headers.host;

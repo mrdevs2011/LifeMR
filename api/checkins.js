@@ -1,6 +1,6 @@
 // api/checkins.js: sayt yozuvlarini o'qish/yozish. Faqat sessiya cookie bilan.
 // Server Firestore'ga Claude akkaunti bilan boradi (rules faqat shu UID'ga ruxsat beradi).
-import { REST, fsFetch, hasSession, key, readJson, send } from "./_lib.js";
+import { REST, fsFetch, hasSession, key, readJson, send, sessionCookie } from "./_lib.js";
 
 const LIMIT = 300;
 
@@ -16,6 +16,13 @@ function tashkentVaqt() {
 
 export default async function handler(req, res) {
   if (!hasSession(req)) return send(res, 401, { error: "kirish kerak" });
+  // Sirpanuvchi sessiya: sayt ochilgan sari (bu so'rov shu payt yuboriladi) muddat yana 7 kunga
+  // uzayadi — muddat SERVERNING soatiga qarab hisoblanadi (Date.now()), brauzer soatiga emas,
+  // shuning uchun lokal vaqtni o'zgartirib aldab bo'lmaydi. 7 kun davomida umuman kirmasang,
+  // eski cookie'ning imzosi to'g'ri bo'lsa ham muddati o'tgan bo'ladi va qayta login so'raladi.
+  // Qo'shimcha so'rov emas — shu javobning ustiga bir header qo'shiladi, sahifa ochilishini
+  // kutdirmaydi.
+  res.setHeader("Set-Cookie", sessionCookie());
   for (const k of ["FS_KEY", "CLAUDE_EMAIL", "CLAUDE_PASSWORD"]) {
     if (!process.env[k]) return send(res, 500, { error: `${k} sozlanmagan` });
   }

@@ -28,6 +28,14 @@ service cloud.firestore {
           && data.ts is timestamp;
     }
 
+    // Login vaqti: bitta hujjat, ikkita qat'iy maydon (before/now). "before" birinchi
+    // login'da hali bo'lmasligi mumkin, shuning uchun null ham qabul qilinadi.
+    function isValidLoginMeta(data) {
+      return data.keys().hasOnly(['before', 'now'])
+          && (data.before is timestamp || data.before == null)
+          && data.now is timestamp;
+    }
+
     match /checkins/{docId} {
       allow read: if isClaude();
       allow create: if isClaude() && isValidCheckin(request.resource.data);
@@ -40,6 +48,13 @@ service cloud.firestore {
     match /ipguard/{id} {
       allow read: if isClaude();
       allow create, update: if isClaude() && isValidGuard(request.resource.data);
+      allow delete: if false;
+    }
+
+    // Login vaqti (before/now) — bitta doimiy hujjat, har login'da ustidan yoziladi.
+    match /meta/{id} {
+      allow read: if isClaude();
+      allow create, update: if isClaude() && isValidLoginMeta(request.resource.data);
       allow delete: if false;
     }
 

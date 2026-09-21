@@ -222,7 +222,34 @@ export async function isBlocked(req) {
 }
 
 // ---------------------------------------------------------------------------
-// Yagona login: sayt ham, /mcp ham shu funksiyadan o'tadi.
+// Login vaqti: bitta doimiy hujjat, ikkita qat'iy maydon (before/now).
+// Har muvaffaqiyatli login'da: eski "now" -> "before" bo'ladi, "now" hozirgi vaqt bo'ladi.
+// Yangi hujjat yaratilmaydi, massiv o'smaydi — hujjat har doim shu ikki maydonni saqlaydi.
+// ---------------------------------------------------------------------------
+export async function recordLogin() {
+  try {
+    const cur = await fsFetch(`${REST}/meta/login?${key()}`);
+    const beforeField = cur.ok ? (await cur.json())?.fields?.now || { nullValue: null } : { nullValue: null };
+    await fsFetch(`${REST}:commit?${key()}`, {
+      method: "POST",
+      body: JSON.stringify({
+        writes: [{
+          update: {
+            name: `${DOCS}/meta/login`,
+            fields: {
+              before: beforeField,
+              now: { timestampValue: new Date().toISOString() },
+            },
+          },
+        }],
+      }),
+    });
+  } catch {
+    /* yozib bo'lmasa ham login to'xtamasin, bu faqat statistika */
+  }
+}
+
+
 // Qaytaradi: { ok:true } | { status, body }
 // ---------------------------------------------------------------------------
 export async function authenticate(req, email, password) {
