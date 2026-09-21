@@ -71,6 +71,15 @@ Claude'ning suhbat uslubi va barcha qoidalari `api/_guide.js` ichida. O'zgartiri
 
 `instruction.md` (Preferences'dagi matn) faqat `get_guide` tool nomiga tayanadi. Tool nomini o'zgartirmasang, uni qayta qo'yish kerak emas.
 
+## 6. Odat qatlami (sayt)
+
+- Tepada oxirgi 7 kun ritmi (nuqtalar) va `n/7 kun · energiya ~x`. Yozish zahoti bugungi nuqta to'lib ko'rinadi. Zanjir uzilishi yoki jazo yo'q, faqat oxirgi 7 kun ko'rinadi.
+- Tez yozish tugmalari va energiya (1-5): yuborishda matn oxiriga ` :N` qo'shiladi (guide aynan shu belgini o'qiydi).
+- Eslatma qatori: yakshanbadan boshqa kunlari 13:00-17:00 da va har kuni 20:00-23:00 da, oxirgi yozuvdan yetarli vaqt o'tgan bo'lsa. Vaqtlarni `index.html` ichidagi `updateHabit()` da o'zgartirasan.
+- Kun chegarasi guide bilan bir xil: 00:00-04:59 dagi yozuv oldingi kunga hisoblanadi.
+- Eng katta odat tugmasi: saytni telefon bosh ekraniga qo'sh (Add to Home Screen). Ilova kabi ochiladi.
+- Claude tomonida ham yengil turtki bor (`_guide.js`, 10-bo'lim, "Odat turtkisi"): suhbatda ko'pi bilan bir marta, aybdor qilmasdan.
+
 ## Xavfsizlik haqida eslatma
 
 - `MCP_TOKEN` va `FS_KEY`ni kodga, chatga yoki skrinshotga hech qachon qo'yma.

@@ -266,6 +266,41 @@
   .state.ok { color: var(--accent); }
   .hint { font-size: .75rem; color: var(--text-faint); padding-top: 12px; }
 
+
+  /* ---- odat qatlami: kunlik ritm, eslatma, tez yozish ---- */
+  .week { margin: 0 0 16px; }
+  .week-dots { display: flex; gap: 8px; }
+  .wd { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; min-width: 0; }
+  .wd i {
+    width: 100%; max-width: 34px; height: 10px; border-radius: 5px;
+    background: var(--border-soft); border: 1px solid var(--border);
+    transition: background-color .25s ease, border-color .25s ease;
+  }
+  .wd.on i { background: var(--accent); border-color: var(--accent); }
+  .wd.today i { border-color: var(--text-dim); }
+  .wd.today.on i { border-color: var(--accent); }
+  .wd.pop i { animation: pop .5s ease-out; }
+  .wd span { font-size: .65rem; color: var(--text-faint); }
+  .wd.today span { color: var(--text-dim); }
+  @keyframes pop { 0% { transform: scaleY(1); } 40% { transform: scaleY(1.9); } 100% { transform: scaleY(1); } }
+  .week-note { margin-top: 10px; font-size: .78rem; color: var(--text-dim); min-height: 1.2em; }
+
+  .nudge {
+    margin: 0 0 12px; padding: 9px 12px; font-size: .82rem; color: var(--accent);
+    background: var(--accent-dim); border: 1px solid rgba(127, 224, 160, .25); border-radius: var(--radius-sm);
+  }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+  .chip {
+    background: transparent; color: var(--text-dim); border: 1px solid var(--border);
+    font-size: .78rem; font-weight: 500; padding: 6px 10px; border-radius: 999px;
+  }
+  .chip:hover { border-color: var(--text-faint); color: var(--text); opacity: 1; }
+  .chip.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+  .chips.energy { align-items: center; }
+  .chips.energy .lbl { font-size: .75rem; color: var(--text-faint); margin-right: 2px; }
+  .chips.energy .chip { min-width: 34px; text-align: center; }
+
   #gate {
     display: flex;
     flex-direction: column;
@@ -303,10 +338,31 @@
     </div>
 
     <div id="content">
+      <div class="week" id="week" hidden>
+        <div class="week-dots" id="weekDots"></div>
+        <div class="week-note" id="weekNote"></div>
+      </div>
+      <div class="nudge" id="nudge" hidden></div>
+
       <form id="statusForm">
-        <input type="text" id="holatInput" placeholder="holatingni yoz..." autocomplete="off" required>
+        <input type="text" id="holatInput" placeholder="holatingni yoz..." autocomplete="off" maxlength="490" required>
         <button type="submit" id="submitBtn">yubor</button>
       </form>
+      <div class="chips" id="phraseChips">
+        <button type="button" class="chip" data-t="kod yozyapman">kod yozyapman</button>
+        <button type="button" class="chip" data-t="yangi loyiha ustidaman">yangi loyiha</button>
+        <button type="button" class="chip" data-t="dam olyapman">dam olyapman</button>
+        <button type="button" class="chip" data-t="maktabdan keldim">maktabdan keldim</button>
+        <button type="button" class="chip" data-t="charchadim">charchadim</button>
+      </div>
+      <div class="chips energy" id="energyChips" role="group" aria-label="energiya">
+        <span class="lbl">energiya</span>
+        <button type="button" class="chip" data-e="1">1</button>
+        <button type="button" class="chip" data-e="2">2</button>
+        <button type="button" class="chip" data-e="3">3</button>
+        <button type="button" class="chip" data-e="4">4</button>
+        <button type="button" class="chip" data-e="5">5</button>
+      </div>
 
       <div id="formState" class="state"></div>
       <div class="divider"></div>
@@ -370,6 +426,102 @@
     return d.innerHTML;
   }
 
+  // ---- ODAT QATLAMI ----
+  // Kun chegarasi (guide bilan bir xil): 00:00-04:59 dagi yozuv oldingi kunning davomi.
+  const pad2 = n => String(n).padStart(2, '0');
+  const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const WD = ['Y', 'D', 'S', 'C', 'P', 'J', 'S']; // yak, dush, sesh, chor, pay, jum, shan
+
+  function logicalDay(d) {
+    const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (d.getHours() < 5) x.setDate(x.getDate() - 1);
+    return x;
+  }
+
+  function dayKeyOf(vaqt) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/.exec(vaqt || '');
+    if (!m) return null;
+    return ymd(logicalDay(new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])));
+  }
+
+  let prevTodayHas = null; // bugungi nuqta yangi to'lganda bir marta animatsiya qilish uchun
+
+  function updateHabit(docs) {
+    const weekEl = document.getElementById('week');
+    const dotsEl = document.getElementById('weekDots');
+    const noteEl = document.getElementById('weekNote');
+    const nudgeEl = document.getElementById('nudge');
+    const now = new Date();
+
+    // kunlar bo'yicha sanash + energiya belgilari (:1-:5)
+    const perDay = new Map();
+    const marks = new Map(); // kun -> [energiya]
+    for (const d of docs) {
+      const f = d.data();
+      const k = dayKeyOf(f.vaqt);
+      if (!k) continue;
+      perDay.set(k, (perDay.get(k) || 0) + 1);
+      const m = /\s:([1-5])\s*$/.exec(f.holat || '');
+      if (m) { if (!marks.has(k)) marks.set(k, []); marks.get(k).push(+m[1]); }
+    }
+
+    // oxirgi 7 mantiqiy kun (eskisi chapda, bugun o'ngda)
+    const today = logicalDay(now);
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today); d.setDate(d.getDate() - i);
+      days.push({ key: ymd(d), wd: WD[d.getDay()], isToday: i === 0 });
+    }
+    const todayHas = (perDay.get(days[6].key) || 0) > 0;
+    dotsEl.innerHTML = days.map(x => {
+      const on = (perDay.get(x.key) || 0) > 0;
+      const pop = x.isToday && on && prevTodayHas === false ? ' pop' : '';
+      return `<div class="wd${on ? ' on' : ''}${x.isToday ? ' today' : ''}${pop}" title="${x.key}"><i></i><span>${x.wd}</span></div>`;
+    }).join('');
+    prevTodayHas = todayHas;
+
+    const n = days.filter(x => perDay.get(x.key)).length;
+    const vals = days.flatMap(x => marks.get(x.key) || []);
+    let note = `${n}/7 kun`;
+    if (vals.length >= 3) note += ` · energiya ~${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)}`;
+    noteEl.textContent = note;
+    weekEl.hidden = false;
+
+    // eslatma: faqat sening tanish paytlaringda (maktabdan keyin, kech kechqurun), bosimsiz
+    let last = null;
+    if (docs.length) {
+      const ts = docs[0].data().timestamp;
+      last = ts && ts.toDate ? ts.toDate() : now;
+    }
+    const hrs = last ? (now - last) / 36e5 : Infinity;
+    const h = now.getHours();
+    let msg = '';
+    if (now.getDay() !== 0 && h >= 13 && h < 17 && hrs > 4) msg = 'uyga keldingmi? bitta holat yoz.';
+    else if (h >= 20 && h < 23 && hrs > 3) msg = 'kunni yopamiz: bitta jumla yoz.';
+    nudgeEl.hidden = !msg;
+    nudgeEl.textContent = msg;
+  }
+
+  // tez yozish: tugmalar inputni to'ldiradi, energiya belgisi yuborishda ' :N' bo'lib qo'shiladi
+  let energy = 0;
+  document.getElementById('phraseChips').addEventListener('click', (e) => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    const inp = document.getElementById('holatInput');
+    inp.value = inp.value.trim() ? `${inp.value.trim()}, ${b.dataset.t}` : b.dataset.t;
+    inp.focus();
+  });
+  document.getElementById('energyChips').addEventListener('click', (e) => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    const v = +b.dataset.e;
+    energy = energy === v ? 0 : v;
+    document.querySelectorAll('#energyChips .chip').forEach(c => c.classList.toggle('on', +c.dataset.e === energy));
+    document.getElementById('holatInput').focus();
+  });
+  function resetEnergy() {
+    energy = 0;
+    document.querySelectorAll('#energyChips .chip').forEach(c => c.classList.remove('on'));
+  }
+
   // Bir vaqtda faqat bitta kun ochiq turadi (accordion).
   // openSana = hozir ochiq turgan kunning sanasi, yoki hech qaysi ochiq bo'lmasa null.
   let openSana = null;
@@ -412,6 +564,7 @@
   }
 
   function render(docs) {
+    updateHabit(docs);
     if (docs.length === 0) {
       logEl.innerHTML = `<div class="state">hali yozuv yo'q.</div>`;
       return;
@@ -498,8 +651,9 @@
 
     formEl.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const holat = inputEl.value.trim();
+      let holat = inputEl.value.trim();
       if (!holat) return;
+      if (energy && !/\s:[1-5]$/.test(holat)) holat += ` :${energy}`;
 
       const now = new Date();
       const pad = n => String(n).padStart(2, '0');
@@ -516,6 +670,7 @@
           timestamp: serverTimestamp(),
         });
         inputEl.value = '';
+        resetEnergy();
         formStateEl.textContent = 'yuborildi ✓';
         formStateEl.className = 'state ok';
         setTimeout(() => { formStateEl.textContent = ''; }, 2000);
