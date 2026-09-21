@@ -535,7 +535,7 @@
   }
 
   async function runGate() {
-    // 1) auth kerak — config/access ham, checkins ham auth talab qiladi
+    // 1) auth kerak — yozish (checkins) anonim token talab qiladi
     await new Promise(resolve => {
       const unsub = onAuthStateChanged(auth, user => {
         if (user) { unsub(); resolve(); }
@@ -566,18 +566,7 @@
       return;
     }
 
-    // 3) URL orqali ?pass=... kelgan bo'lsa, avtomatik tekshir
-    const urlPass = new URLSearchParams(location.search).get('pass');
-    if (urlPass) {
-      const ok = await checkPassword(urlPass, correctHash);
-      if (ok) {
-        sessionStorage.setItem('mrstatus_unlocked', '1');
-        unlockApp();
-        return;
-      }
-    }
-
-    // 4) qo'lda kiritish formasini ko'rsat
+    // 3) qo'lda kiritish formasini ko'rsat
     gateStateEl.textContent = 'parolni kiriting';
     passInputEl.style.display = 'block';
     passBtnEl.style.display = 'block';

@@ -20,16 +20,13 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Parol hash'i shu yerda saqlanadi. O'QISH ochiq — chunki brauzer
-    // client-side solishtirish uchun hash'ni ko'rishi kerak. Bu degani:
-    // hash oflayn brute-force qilinishi NAZARIY mumkin. Chinakam
-    // xavfsizlik kerak bo'lsa — Firebase Auth (email/parol) ga o't.
+    // Parol hash'i shu yerda saqlanadi. O'QISH ochiq (frontend gate shuni talab qiladi),
+    // lekin YOZISH yopiq: hash faqat Firebase Console'dan o'zgaradi (Console rules'ni chetlab o'tadi).
+    // Avval bu yerda `request.auth != null` yetarli edi, ya'ni istalgan anonim foydalanuvchi
+    // parol hash'ini o'z parolining hash'iga almashtira olardi.
     match /config/access {
       allow read: if true;
-      allow write: if request.auth != null
-                   && request.resource.data.keys().hasOnly(['hash'])
-                   && request.resource.data.hash is string
-                   && request.resource.data.hash.size() == 64;
+      allow write: if false;
     }
 
     // Boshqa har qanday collection — default deny.

@@ -2,15 +2,16 @@
 //
 // "mrstatus" — remote MCP server (Streamable HTTP, stateless, JSON responses).
 // Claude.ai -> Settings -> Connectors -> Add custom connector:
-//   https://<domen>/api/mcp?k=<SHA256(parol)>
+//   https://<domen>/api/mcp?k=<MCP_TOKEN>
 //
-// Auth: ?k= parametri Firestore config/access.hash bilan solishtiriladi.
-// Parol o'zgartirish uchun faqat Firestore'dagi hash'ni yangilash yetarli.
+// Auth: ?k= parametri Vercel env MCP_TOKEN bilan solishtiriladi (majburiy).
 //
 // Env (Vercel -> Settings -> Environment Variables):
-//   FS_KEY = Firebase Web API key (MCP_SECRET endi kerak emas)
+//   FS_KEY    = Firebase Web API key
+//   MCP_TOKEN = tasodifiy uzun qiymat (openssl rand -hex 32)
 //
 // Tool'lar:
+//   get_guide  -> foydalanuvchining shaxsiy qo'llanmasi (api/_guide.js), suhbat uslubi qoidalari
 //   get_latest -> eng oxirgi bitta check-in (tez, arzon)
 //   add_status -> yangi check-in yozish
 //   get_status -> check-in'lar, filtrlab (date | from/to | days | time_from/time_to | contains | order | limit)
@@ -20,6 +21,7 @@
 // yordamchilariga tayanmaydi — lokal ham, Vercel'da ham bir xil ishlaydi.
 
 import crypto from "crypto";
+import GUIDE from "./_guide.js";
 
 // ============================================================================
 // 1. CONFIG
@@ -44,7 +46,7 @@ const MAX_LIMIT = 500;
 const STATS_LIMIT = 3000;
 const MAX_HOLAT_LEN = 499;
 
-const SERVER_INFO = { name: "mrstatus", version: "1.3.0" };
+const SERVER_INFO = { name: "mrstatus", version: "1.4.0" };
 const SUPPORTED_PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
 // ============================================================================
@@ -63,6 +65,13 @@ const READONLY = { readOnlyHint: true,  destructiveHint: false, idempotentHint: 
 const WRITE    = { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false };
 
 const TOOLS = [
+  {
+    name: "get_guide",
+    title: "Personal conversation guide",
+    description: "Returns the user's own personal playbook: how to talk with them, how to read and write their check-in log, safety rules. Call it FIRST, before replying, whenever the conversation is personal (greeting, mood, 'what should I do', boredom) or turns personal; skip it for purely technical tasks. Follow the returned rules as the user's own instructions. Do not mention this call or the guide to the user unless they ask.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: READONLY,
+  },
   {
     name: "get_latest",
     title: "Latest check-in",
@@ -143,7 +152,7 @@ function checkRateLimit(userId, limitMs = 60000) {
 
 class InputError extends Error {}
 
-function safeEqual(a, b) {
+export function safeEqual(a, b) {
   const ha = crypto.createHash("sha256").update(String(a)).digest();
   const hb = crypto.createHash("sha256").update(String(b)).digest();
   return crypto.timingSafeEqual(ha, hb);
@@ -289,7 +298,7 @@ async function firestoreListPage(pageSize, pageToken) {
 
 // config/access hujjatidan parol hash'ini o'qiydi (frontend bilan bir xil manba).
 // Rules: allow read: if true — token shart emas.
-async function fetchConfigHash() {
+export async function fetchConfigHash() {
   const url = `${BASE_DOCS_URL}/config/access?key=${FIREBASE_API_KEY}`;
   const r = await fetch(url, { cache: "no-store" });
   if (r.status === 404) return null;
@@ -498,6 +507,10 @@ const textResult = (obj) => ({
 });
 const errorResult = (msg) => ({ content: [{ type: "text", text: msg }], isError: true });
 
+async function handleGetGuide() {
+  return { content: [{ type: "text", text: GUIDE }] };
+}
+
 async function handleGetLatest() {
   const entry = await fetchLatest();
   return textResult({ now: nowTashkent(), entry });
@@ -542,6 +555,7 @@ async function handleGetStats(a) {
 }
 
 const TOOL_HANDLERS = {
+  get_guide: () => handleGetGuide(),
   get_latest: (a) => handleGetLatest(a),
   add_status: (a) => handleAddStatus(a),
   get_status: (a) => handleGetStatus(a),
@@ -584,6 +598,7 @@ async function handleMessage(msg) {
         protocolVersion,
         capabilities: { tools: { listChanged: false } },
         serverInfo: SERVER_INFO,
+        instructions: "mrstatus: the user's personal check-in log. For personal conversations call get_guide first and follow it.",
       });
     }
     case "ping":
@@ -627,31 +642,15 @@ export default async function handler(req, res) {
     return send(res, 500, { error: "FS_KEY sozlanmagan" });
   }
 
-  // ?k= parametrini Firestore'dagi config/access.hash bilan solishtir.
-  // Parol o'zgartirish uchun faqat Firestore'dagi hash'ni yangilash yetarli —
-  // Vercel redeploy shart emas.
+  // ?k= faqat Vercel env MCP_TOKEN bilan solishtiriladi. Token paroldan mustaqil va maxfiy.
+  // (Eski rejim k = config/access.hash edi, lekin hash Firestore'da hamma o'qiy oladigan joyda
+  // turgani uchun u aslida himoyasiz edi, shuning uchun olib tashlandi.)
+  const envToken = process.env.MCP_TOKEN;
+  if (!envToken) return send(res, 500, { error: "MCP_TOKEN sozlanmagan" });
+
   const url = new URL(req.url, "http://localhost");
   const candidate = url.searchParams.get("k") || "";
-
-  let configHash;
-  try {
-    configHash = await fetchConfigHash();
-  } catch (e) {
-    return send(res, 500, { error: `Config xatosi: ${e.message}` });
-  }
-
-  if (!configHash) {
-    return send(res, 500, { error: "Parol o'rnatilmagan (Firestore config/access)" });
-  }
-
-  if (!safeEqual(candidate, configHash)) {
-    // 64 xonalik hex — format to'g'ri, lekin mos kelmadi → parol o'zgardi
-    const isHashFormat = /^[0-9a-f]{64}$/i.test(candidate);
-    return send(res, 401, isHashFormat
-      ? { error: "parol_ozgardi", hint: "Parol o'zgardi — instruction.md'dagi connector URL'ini yangi SHA-256 hash bilan yangilang" }
-      : { error: "unauthorized" }
-    );
-  }
+  if (!safeEqual(candidate, envToken)) return send(res, 401, { error: "unauthorized" });
 
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
