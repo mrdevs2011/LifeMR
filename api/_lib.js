@@ -322,8 +322,10 @@ export async function authenticate(req, email, password) {
   let c;
   try {
     c = await guardCall("charge", id);
-  } catch {
+  } catch (e) {
     // Firestore ishlamayapti / sozlanmagan — himoyasiz qoldirishdan ko'ra login'ni to'xtatamiz.
+    // Sabab faqat server logiga yoziladi (Vercel -> Logs), mijozga ko'rsatilmaydi.
+    console.error("[guard]", String(e?.message || e));
     return { status: 503, body: { error: "vaqtincha_ishlamayapti" } };
   }
   if (c.blocked) return { status: 403, body: { error: "bloklangan" } };
