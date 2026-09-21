@@ -1,4 +1,4 @@
-# MRstatus
+# LifeMR
 
 Shaxsiy check-in (kayfiyat/holat) logi. Brauzerdan yozasan, Claude orqali o'qiladi.
 
@@ -63,7 +63,7 @@ Repo'ni GitHub'ga push qil: Vercel avtomatik deploy qiladi.
 ## 4. Claude accountlarni ulash (har accountga bir marta)
 
 1. `https://<domen>/mcp` ni och, email va parolingni yoz. Connector URL yopiq (`••••`) ko'rinadi, **Nusxa olish** ni bos.
-2. Claude → Settings → Connectors → Add custom connector. Name: `mrstatus`, URL: nusxa olingan manzil. OAuth maydonlarini bo'sh qoldir.
+2. Claude → Settings → Connectors → Add custom connector. Name: `lifemr`, URL: nusxa olingan manzil. OAuth maydonlarini bo'sh qoldir.
 3. `instruction.md` matnini shu accountning Preferences'iga qo'y va yangi chat och.
 
 ## 5. Qoidalarni o'zgartirish (accountlarga tegmasdan)

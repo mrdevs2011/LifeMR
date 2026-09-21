@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MRstatus · MCP</title>
+<title>LifeMR · MCP</title>
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="theme-color" content="#0a0c0b">
 <meta name="referrer" content="no-referrer">
@@ -173,27 +173,27 @@
   <div class="card">
     <div class="topbar">
       <img class="badge" src="/logo/logo.svg" alt="" width="16" height="16">
-      <h1><b>mrstatus</b><span class="path">~/mcp</span><span class="live-dot" aria-hidden="true"></span></h1>
+      <h1><b>LifeMR</b><span class="path">~/mcp</span><span class="live-dot" aria-hidden="true"></span></h1>
     </div>
 
     <div class="card-body">
-      <p class="state" id="state" role="status" aria-live="polite">Kirish</p>
+      <p class="state" id="state" role="status" aria-live="polite">Sign in</p>
 
       <form id="gate" autocomplete="off">
         <input id="email" class="inp" name="email" type="email" placeholder="Email" autocomplete="off" required>
-        <input id="pass" class="inp" name="password" type="password" placeholder="Parol" autocomplete="off" required>
-        <button id="passBtn" type="submit">Kirish</button>
+        <input id="pass" class="inp" name="password" type="password" placeholder="Password" autocomplete="off" required>
+        <button id="passBtn" type="submit">Sign in</button>
       </form>
 
       <div id="reveal" hidden>
         <div class="field">
           <input id="mcpUrl" class="inp" type="password" readonly spellcheck="false" autocomplete="off" aria-label="Connector URL">
-          <button id="copyBtn" type="button">Nusxa olish</button>
+          <button id="copyBtn" type="button">Copy</button>
         </div>
-        <p class="note">Claude → Settings → Connectors → Add custom connector. Name: mrstatus. URL: nusxa olingan manzil. Uni hech kimga yubormang.</p>
+        <p class="note">Claude → Settings → Connectors → Add custom connector. Name: lifemr. URL: the copied address. Do not send it to anyone.</p>
       </div>
 
-      <noscript><p class="state err">Bu sahifa JavaScript'siz ishlamaydi.</p></noscript>
+      <noscript><p class="state err">This page does not work without JavaScript.</p></noscript>
     </div>
   </div>
 </div>
@@ -224,9 +224,9 @@
     urlEl.type = 'password';
     gateEl.hidden = true;
     revealEl.hidden = false;
-    setState("parol to'g'ri", 'ok');
+    setState('password is correct', 'ok');
     clearTimeout(lockTimer);
-    lockTimer = setTimeout(() => lock('vaqt tugadi, manzil yopildi'), AUTO_LOCK_MS);
+    lockTimer = setTimeout(() => lock('time is up, address hidden'), AUTO_LOCK_MS);
   }
 
   function fmtLeft(total) {
@@ -237,11 +237,11 @@
     const hh = Math.floor(s / 3600); s -= hh * 3600;
     const mm = Math.floor(s / 60); s -= mm * 60;
     const parts = [];
-    if (y) parts.push(`${y} yil`);
-    if (d) parts.push(`${d} kun`);
-    if (hh) parts.push(`${hh} soat`);
-    if (mm) parts.push(`${mm} daqiqa`);
-    parts.push(`${s} soniya`);
+    if (y) parts.push(`${y} year${y === 1 ? '' : 's'}`);
+    if (d) parts.push(`${d} day${d === 1 ? '' : 's'}`);
+    if (hh) parts.push(`${hh} hour${hh === 1 ? '' : 's'}`);
+    if (mm) parts.push(`${mm} minute${mm === 1 ? '' : 's'}`);
+    parts.push(`${s} second${s === 1 ? '' : 's'}`);
     return parts.join(' ');
   }
 
@@ -253,7 +253,7 @@
     gateEl.hidden = true;
     gateEl.style.display = 'none';
     if (info.permanent || !Number.isFinite(info.retry_after_sec)) {
-      setState('IP manzilingiz bloklangan', 'err');
+      setState('Your IP is blocked', 'err');
       return;
     }
     const endAt = performance.now() + info.retry_after_sec * 1000;
@@ -264,7 +264,7 @@
         recheckAfterBlock();
         return;
       }
-      setState(`IP manzilingiz bloklandi. Ochilishiga: ${fmtLeft(left)}`, 'err');
+      setState(`Your IP is blocked. Unlocks in: ${fmtLeft(left)}`, 'err');
     };
     tick();
     blockTimer = setInterval(tick, 1000);
@@ -277,14 +277,14 @@
       if (d && d.blocked) { showBlocked(d); return; }
       gateEl.style.display = '';
       gateEl.hidden = false;
-      setState('Kirish');
+      setState('Sign in');
       passEl.focus();
     } catch {
       showBlocked({ retry_after_sec: 5 });
     }
   }
 
-  function lock(message = 'yopildi') {
+  function lock(message = 'hidden') {
     clearTimeout(lockTimer);
     lockTimer = null;
     urlEl.value = '';
@@ -303,7 +303,7 @@
     if (!val || !mail) return;
 
     passBtn.disabled = true;
-    setState('tekshirilmoqda…');
+    setState('checking…');
     try {
       const r = await fetch('/api/mcp-link', {
         method: 'POST',
@@ -321,14 +321,14 @@
         showBlocked(data);
       } else if (r.status === 401) {
         const left = data.attempts_left;
-        setState("email yoki parol noto'g'ri" + (data.unlimited ? ". Eshik ochiq, limit yo'q: qayta urinaver" : left ? `. ${left} ta urinish qoldi` : ''), 'err');
+        setState('email or password is wrong' + (data.unlimited ? '. Door is open, no limit: you can try again' : left ? `. ${left} attempt${left === 1 ? '' : 's'} left` : ''), 'err');
       } else if (r.status === 429) {
-        setState(`juda ko'p urinish. ${data.retry_after_sec || 60} soniya kuting`, 'err');
+        setState(`too many attempts. wait ${data.retry_after_sec || 60} seconds`, 'err');
       } else {
-        setState(`xato: ${data.error || r.status}`, 'err');
+        setState(`error: ${data.error || r.status}`, 'err');
       }
     } catch {
-      setState("server bilan bog'lanib bo'lmadi", 'err');
+      setState('could not reach the server', 'err');
     } finally {
       passBtn.disabled = false;
     }
@@ -337,19 +337,19 @@
   copyBtn.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(urlEl.value);
-      setState('nusxa olindi', 'ok');
+      setState('copied', 'ok');
     } catch {
       // Clipboard bloklangan bo'lsa: matnni ko'rsatib tanlaymiz, qo'lda ko'chirasan
       urlEl.type = 'text';
       urlEl.focus();
       urlEl.select();
-      setState('avtomatik nusxa olinmadi. Matn tanlandi, Ctrl+C bos', 'err');
+      setState('could not copy automatically. Text selected, press Ctrl+C', 'err');
     }
   });
 
   // Sahifa fonga o'tsa (boshqa tab) ochiq manzil qolib ketmasin
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && !revealEl.hidden) lock('sahifadan chiqding, manzil yopildi');
+    if (document.hidden && !revealEl.hidden) lock('you left the page, address hidden');
   });
 
   // Sahifa ochilganda: IP oldin bloklanganmi?

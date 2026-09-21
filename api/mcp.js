@@ -1,6 +1,6 @@
 // api/mcp.js
 //
-// "mrstatus" — remote MCP server (Streamable HTTP, stateless, JSON responses).
+// "lifemr" — remote MCP server (Streamable HTTP, stateless, JSON responses).
 // Claude.ai -> Settings -> Connectors -> Add custom connector:
 //   https://<domen>/api/mcp?k=<MCP_TOKEN>
 //
@@ -61,7 +61,7 @@ const DAY_NAMES_UZ = {
   fri: "juma", sat: "shanba", sun: "yakshanba",
 };
 
-const SERVER_INFO = { name: "mrstatus", version: "1.6.0" };
+const SERVER_INFO = { name: "lifemr", version: "1.6.0" };
 const SUPPORTED_PROTOCOLS = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
 // ============================================================================
@@ -906,7 +906,7 @@ async function handleMessage(msg) {
         protocolVersion,
         capabilities: { tools: { listChanged: false } },
         serverInfo: SERVER_INFO,
-        instructions: "mrstatus: the user's personal check-in log and weekly class schedule. For personal conversations call get_guide first and follow it. For questions about classes/lessons call get_schedule.",
+        instructions: "lifemr: the user's personal check-in log and weekly class schedule. For personal conversations call get_guide first and follow it. For questions about classes/lessons call get_schedule.",
       });
     }
     case "ping":

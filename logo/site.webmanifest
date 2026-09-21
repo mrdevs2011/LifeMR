@@ -1,6 +1,6 @@
 {
-  "name": "MRstatus",
-  "short_name": "MRstatus",
+  "name": "LifeMR",
+  "short_name": "LifeMR",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0d0c",

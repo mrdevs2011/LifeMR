@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MRstatus</title>
-<meta name="application-name" content="MRstatus">
-<meta name="apple-mobile-web-app-title" content="MRstatus">
+<title>LifeMR</title>
+<meta name="application-name" content="LifeMR">
+<meta name="apple-mobile-web-app-title" content="LifeMR">
 <meta name="theme-color" content="#0a0c0b">
-<meta name="description" content="MRstatus">
+<meta name="description" content="LifeMR">
 <link rel="icon" type="image/svg+xml" href="/logo/logo.svg">
 <link rel="alternate icon" type="image/x-icon" sizes="48x48" href="/logo/logo.ico">
 <link rel="apple-touch-icon" href="/logo/logo-180.png">
@@ -379,22 +379,22 @@
   <div class="card">
     <div class="topbar">
       <img class="badge" src="/logo/logo.svg" alt="" width="16" height="16">
-      <h1><b>mrstatus</b><span class="path">~/status</span><span class="live-dot" aria-hidden="true"></span></h1>
+      <h1><b>LifeMR</b><span class="path">~/life</span><span class="live-dot" aria-hidden="true"></span></h1>
     </div>
 
     <div id="gate">
-      <div class="state" id="gateState">tekshirilmoqda...</div>
+      <div class="state" id="gateState">checking...</div>
       <form id="loginForm" style="display:none" autocomplete="off">
         <input type="email" class="inp" id="emailInput" placeholder="Email" autocomplete="off" required>
-        <input type="password" class="inp" id="passInput" placeholder="Parol" autocomplete="off" required>
-        <button type="submit" id="passBtn">Kirish</button>
+        <input type="password" class="inp" id="passInput" placeholder="Password" autocomplete="off" required>
+        <button type="submit" id="passBtn">Sign in</button>
       </form>
     </div>
 
     <div id="content">
       <div class="tabs" id="tabs">
         <button type="button" class="tab active" data-tab="status">status</button>
-        <button type="button" class="tab" data-tab="jadval">jadval</button>
+        <button type="button" class="tab" data-tab="jadval">schedule</button>
       </div>
       <div class="tab-line"></div>
 
@@ -406,18 +406,18 @@
       <div class="nudge" id="nudge" hidden></div>
 
       <form id="statusForm">
-        <input type="text" class="inp" id="holatInput" placeholder="holatingni yoz..." autocomplete="off" maxlength="490" required>
-        <button type="submit" id="submitBtn">yubor</button>
+        <input type="text" class="inp" id="holatInput" placeholder="write how you are..." autocomplete="off" maxlength="490" required>
+        <button type="submit" id="submitBtn">send</button>
       </form>
       <div class="chips" id="phraseChips">
-        <button type="button" class="chip" data-t="kod yozyapman">kod yozyapman</button>
-        <button type="button" class="chip" data-t="yangi loyiha ustidaman">yangi loyiha</button>
-        <button type="button" class="chip" data-t="dam olyapman">dam olyapman</button>
-        <button type="button" class="chip" data-t="maktabdan keldim">maktabdan keldim</button>
-        <button type="button" class="chip" data-t="charchadim">charchadim</button>
+        <button type="button" class="chip" data-t="coding">coding</button>
+        <button type="button" class="chip" data-t="on a new project">new project</button>
+        <button type="button" class="chip" data-t="resting">resting</button>
+        <button type="button" class="chip" data-t="home from school">home from school</button>
+        <button type="button" class="chip" data-t="tired">tired</button>
       </div>
-      <div class="chips energy" id="energyChips" role="group" aria-label="energiya">
-        <span class="lbl">energiya</span>
+      <div class="chips energy" id="energyChips" role="group" aria-label="energy">
+        <span class="lbl">energy</span>
         <button type="button" class="chip" data-e="1">1</button>
         <button type="button" class="chip" data-e="2">2</button>
         <button type="button" class="chip" data-e="3">3</button>
@@ -428,9 +428,9 @@
       <div id="formState" class="state"></div>
       <div class="divider"></div>
       <div id="log">
-        <div class="state">yuklanmoqda...</div>
+        <div class="state">loading...</div>
       </div>
-      <div class="state hint">kun ustiga bosilsa, o'sha kun statuslari ochiladi · <button type="button" id="logoutBtn" class="linkbtn">chiqish</button></div>
+      <div class="state hint">tap a day to open its statuses · <button type="button" id="logoutBtn" class="linkbtn">sign out</button></div>
       </div>
 
       <div class="card-body" id="panelJadval" hidden>
@@ -439,13 +439,13 @@
             <thead>
               <tr>
                 <th></th>
-                <th class="timecol" title="Dars boshlanishi va tugashi">Vaqt</th>
-                <th title="Dushanba">Dush</th>
-                <th title="Seshanba">Sesh</th>
-                <th title="Chorshanba">Chor</th>
-                <th title="Payshanba">Pay</th>
-                <th title="Juma">Jum</th>
-                <th title="Shanba">Shan</th>
+                <th class="timecol" title="Lesson start and end">Time</th>
+                <th title="Monday">Mon</th>
+                <th title="Tuesday">Tue</th>
+                <th title="Wednesday">Wed</th>
+                <th title="Thursday">Thu</th>
+                <th title="Friday">Fri</th>
+                <th title="Saturday">Sat</th>
               </tr>
             </thead>
             <tbody id="jadvalBody"></tbody>
@@ -482,7 +482,7 @@
   // Kun chegarasi (guide bilan bir xil): 00:00-04:59 dagi yozuv oldingi kunning davomi.
   const pad2 = n => String(n).padStart(2, '0');
   const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-  const WD = ['Y', 'D', 'S', 'C', 'P', 'J', 'S']; // yak, dush, sesh, chor, pay, jum, shan
+  const WD = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
   function logicalDay(d) {
     const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -534,8 +534,8 @@
 
     const n = days.filter(x => perDay.get(x.key)).length;
     const vals = days.flatMap(x => marks.get(x.key) || []);
-    let note = `${n}/7 kun`;
-    if (vals.length >= 3) note += ` · energiya ~${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)}`;
+    let note = `${n}/7 days`;
+    if (vals.length >= 3) note += ` · energy ~${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)}`;
     noteEl.textContent = note;
     weekEl.hidden = false;
 
@@ -548,8 +548,8 @@
     const hrs = last ? (now - last) / 36e5 : Infinity;
     const h = now.getHours();
     let msg = '';
-    if (now.getDay() !== 0 && h >= 13 && h < 17 && hrs > 4) msg = 'uyga keldingmi? bitta holat yoz.';
-    else if (h >= 20 && h < 23 && hrs > 3) msg = 'kunni yopamiz: bitta jumla yoz.';
+    if (now.getDay() !== 0 && h >= 13 && h < 17 && hrs > 4) msg = 'home yet? write one status.';
+    else if (h >= 20 && h < 23 && hrs > 3) msg = 'close the day: write one sentence.';
     nudgeEl.hidden = !msg;
     nudgeEl.textContent = msg;
   }
@@ -618,7 +618,7 @@
   function render(docs) {
     updateHabit(docs);
     if (docs.length === 0) {
-      logEl.innerHTML = `<div class="state">hali yozuv yo'q.</div>`;
+      logEl.innerHTML = `<div class="state">no entries yet.</div>`;
       return;
     }
 
@@ -638,7 +638,7 @@
       html += `<div class="day" data-sana="${esc(sana)}">`;
       html += `<div class="day-row">`;
       html += `<div class="day-date">${esc(sana)}</div>`;
-      html += `<div class="day-count">${yozuvlar.length} ta status</div>`;
+      html += `<div class="day-count">${yozuvlar.length} status${yozuvlar.length === 1 ? '' : 'es'}</div>`;
       html += `<div class="day-arrow">›</div>`;
       html += `</div>`;
       html += `<div class="day-entries">`;
@@ -706,9 +706,9 @@
     for (let i = 1; i <= ROWS; i++) {
       html += `<tr><td class="rownum">${i}</td>`;
       html += `<td class="timecell"><div class="timebox"><div class="stack">`
-        + `<div class="cell tcell" contenteditable="true" data-key="start_${i}" aria-label="${i}-dars boshlanishi"></div>`
-        + `<div class="cell tcell" contenteditable="true" data-key="end_${i}" aria-label="${i}-dars tugashi"></div>`
-        + `</div><span class="brk" data-brk="${i}" title="keyingi darsgacha tanaffus (daqiqa)"></span></div></td>`;
+        + `<div class="cell tcell" contenteditable="true" data-key="start_${i}" aria-label="lesson ${i} start"></div>`
+        + `<div class="cell tcell" contenteditable="true" data-key="end_${i}" aria-label="lesson ${i} end"></div>`
+        + `</div><span class="brk" data-brk="${i}" title="break until next lesson (minutes)"></span></div></td>`;
       for (const d of DAYS) html += `<td><div class="cell" contenteditable="true" data-key="${d}_${i}"></div></td>`;
       html += '</tr>';
     }
@@ -742,7 +742,7 @@
 
   function markJadvalDirty() {
     jadvalDirty = true;
-    jadvalStateEl.textContent = 'yozilmoqda...';
+    jadvalStateEl.textContent = 'editing...';
     jadvalStateEl.className = 'jadval-state';
     if (jadvalTimer) clearTimeout(jadvalTimer);
     jadvalTimer = setTimeout(saveJadval, 5000);
@@ -773,12 +773,12 @@
     if (!unlocked) return;
     jadvalLoaded = true;
     if (!silent) {
-      jadvalStateEl.textContent = 'yuklanmoqda...';
+      jadvalStateEl.textContent = 'loading...';
       jadvalStateEl.className = 'jadval-state';
     }
     try {
       const { r, data } = await api('/api/jadval');
-      if (r.status === 401) { showGate('sessiya tugadi, qayta kir', 'err'); return; }
+      if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
       if (!r.ok) throw new Error(data.error || r.status);
       if (jadvalDirty || jadvalSaving) return;
       const cells = data.cells || {};
@@ -790,7 +790,7 @@
       if (!silent) jadvalStateEl.textContent = '';
     } catch (err) {
       if (silent) return;
-      jadvalStateEl.textContent = `xato: ${err.message || err}`;
+      jadvalStateEl.textContent = `error: ${err.message || err}`;
       jadvalStateEl.className = 'jadval-state err';
     }
   }
@@ -806,7 +806,7 @@
     if (jadvalSaving) { jadvalTimer = setTimeout(saveJadval, 1000); return; }
     jadvalSaving = true;
     jadvalDirty = false;
-    jadvalStateEl.textContent = 'saqlanmoqda...';
+    jadvalStateEl.textContent = 'saving...';
     jadvalStateEl.className = 'jadval-state saving';
     try {
       const { r, data } = await api('/api/jadval', {
@@ -814,12 +814,12 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cells: readJadvalCells() }),
       });
-      if (r.status === 401) { showGate('sessiya tugadi, qayta kir', 'err'); return; }
+      if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
       if (!r.ok) throw new Error(data.error || r.status);
-      jadvalStateEl.textContent = 'saqlandi ✓';
+      jadvalStateEl.textContent = 'saved ✓';
       jadvalStateEl.className = 'jadval-state saved';
     } catch (err) {
-      jadvalStateEl.textContent = `saqlanmadi: ${err.message || err} — qayta urinilmoqda`;
+      jadvalStateEl.textContent = `not saved: ${err.message || err} — retrying`;
       jadvalStateEl.className = 'jadval-state err';
       jadvalDirty = true;
       jadvalTimer = setTimeout(saveJadval, 5000);
@@ -866,7 +866,7 @@
 
   function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
 
-  function showGate(msg = 'Kirish', kind = '') {
+  function showGate(msg = 'Sign in', kind = '') {
     unlocked = false;
     stopPolling();
     contentEl.style.display = 'none';
@@ -896,11 +896,11 @@
     const hh = Math.floor(s / 3600); s -= hh * 3600;
     const mm = Math.floor(s / 60); s -= mm * 60;
     const parts = [];
-    if (y) parts.push(`${y} yil`);
-    if (d) parts.push(`${d} kun`);
-    if (hh) parts.push(`${hh} soat`);
-    if (mm) parts.push(`${mm} daqiqa`);
-    parts.push(`${s} soniya`);
+    if (y) parts.push(`${y} year${y === 1 ? '' : 's'}`);
+    if (d) parts.push(`${d} day${d === 1 ? '' : 's'}`);
+    if (hh) parts.push(`${hh} hour${hh === 1 ? '' : 's'}`);
+    if (mm) parts.push(`${mm} minute${mm === 1 ? '' : 's'}`);
+    parts.push(`${s} second${s === 1 ? '' : 's'}`);
     return parts.join(' ');
   }
 
@@ -916,7 +916,7 @@
     loginFormEl.style.display = 'none';
     gateStateEl.className = 'state err';
     if (info.permanent || !Number.isFinite(info.retry_after_sec)) {
-      gateStateEl.textContent = 'IP manzilingiz bloklangan';
+      gateStateEl.textContent = 'Your IP is blocked';
       return;
     }
     // Faqat farqdan foydalanamiz (serverdan kelgan qolgan soniya + brauzerdagi o'tgan vaqt): brauzer soati noto'g'ri bo'lsa ham xato bo'lmaydi.
@@ -928,7 +928,7 @@
         recheckAfterBlock();
         return;
       }
-      gateStateEl.textContent = `IP manzilingiz bloklandi. Ochilishiga: ${fmtLeft(left)}`;
+      gateStateEl.textContent = `Your IP is blocked. Unlocks in: ${fmtLeft(left)}`;
     };
     tick();
     blockTimer = setInterval(tick, 1000);
@@ -955,12 +955,12 @@
     loading = true;
     try {
       const { r, data } = await api('/api/checkins');
-      if (r.status === 401) { showGate('sessiya tugadi, qayta kir', 'err'); return; }
+      if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
       if (!r.ok) throw new Error(data.error || r.status);
       render(asDocs(data.items || []));
     } catch (err) {
       if (unlocked && !logEl.querySelector('.day')) {
-        logEl.innerHTML = `<div class="state err">xato: ma'lumot yuklanmadi (${esc(String(err.message || err))})</div>`;
+        logEl.innerHTML = `<div class="state err">error: data failed to load (${esc(String(err.message || err))})</div>`;
       }
     } finally {
       loading = false;
@@ -986,7 +986,7 @@
     if (!email || !pass) return;
 
     passBtnEl.disabled = true;
-    gateStateEl.textContent = 'tekshirilmoqda...';
+    gateStateEl.textContent = 'checking...';
     gateStateEl.className = 'state';
     try {
       const { r, data } = await api('/api/login', {
@@ -998,16 +998,16 @@
       passInputEl.value = '';
       if (r.ok) { unlockApp(); return; }
       if (r.status === 403) return; // api() bloklangan ekranni va orqaga sanashni allaqachon ko'rsatdi
-      let msg = "email yoki parol noto'g'ri";
-      if (r.status === 401 && data.unlimited) msg += ". Eshik ochiq, limit yo'q: qayta urinaver";
-      else if (r.status === 401 && data.attempts_left) msg += `. ${data.attempts_left} ta urinish qoldi`;
-      else if (r.status === 429) msg = "juda ko'p so'rov, bir necha soniyadan keyin qayta urin";
-      else if (r.status >= 500) msg = `server xatosi: ${data.error || r.status}`;
+      let msg = "email or password is wrong";
+      if (r.status === 401 && data.unlimited) msg += ". Door is open, no limit: you can try again";
+      else if (r.status === 401 && data.attempts_left) msg += `. ${data.attempts_left} attempt${data.attempts_left === 1 ? '' : 's'} left`;
+      else if (r.status === 429) msg = "too many requests, try again in a few seconds";
+      else if (r.status >= 500) msg = `server error: ${data.error || r.status}`;
       gateStateEl.textContent = msg;
       gateStateEl.className = 'state err';
     } catch {
       passInputEl.value = '';
-      gateStateEl.textContent = "server bilan bog'lanib bo'lmadi";
+      gateStateEl.textContent = "could not reach the server";
       gateStateEl.className = 'state err';
     } finally {
       passBtnEl.disabled = false;
@@ -1016,7 +1016,7 @@
 
   logoutBtnEl.addEventListener('click', async () => {
     await api('/api/logout', { method: 'POST' }).catch(() => {});
-    showGate('chiqding');
+    showGate('signed out');
   });
 
   // Yangi yozuv (forma bir marta ulanadi)
@@ -1037,16 +1037,16 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ holat }),
       });
-      if (r.status === 401) { showGate('sessiya tugadi, qayta kir', 'err'); return; }
+      if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
       if (!r.ok) throw new Error(data.error || r.status);
       inputEl.value = '';
       resetEnergy();
-      formStateEl.textContent = 'yuborildi ✓';
+      formStateEl.textContent = 'sent ✓';
       formStateEl.className = 'state ok';
       setTimeout(() => { formStateEl.textContent = ''; }, 2000);
       loadLog();
     } catch (err) {
-      formStateEl.textContent = `xato: ${err.message}`;
+      formStateEl.textContent = `error: ${err.message}`;
       formStateEl.className = 'state err';
     } finally {
       btnEl.disabled = false;
@@ -1062,7 +1062,7 @@
       else if (data.authed) unlockApp();
       else showGate();
     } catch {
-      showGate("server bilan bog'lanib bo'lmadi", 'err');
+      showGate('could not reach the server', 'err');
     }
   })();
 </script>
