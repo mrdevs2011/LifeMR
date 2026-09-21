@@ -1,15 +1,20 @@
 // api/jadval.js: dars jadvali (haftalik grid) — o'qish/yozish. Faqat sessiya cookie bilan.
 // Bitta doimiy hujjat: jadval/main. Katak kaliti: "<kun>_<soat>" (masalan mon_1..sat_8).
+// Dars vaqtlari ham shu xaritada: "start_<soat>" va "end_<soat>" (masalan start_1 = "8:00", end_1 = "8:45").
 // Har PUT butun gridni almashtiradi (bo'sh katak yozilmaydi, shuning uchun hujjat faqat
-// to'ldirilgan kataklarni saqlaydi).
+// to'ldirilgan kataklarni saqlaydi). Shuning uchun api/mcp.js ham vaqt kalitlarini o'qib, qayta yozishi shart,
+// aks holda Claude set_schedule chaqirganda vaqtlar o'chib ketadi.
 import { REST, fsFetch, key, requireSession, readJson, send, sessionCookie } from "./_lib.js";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat"];
 const ROWS = 8;
 const CELL_MAX = 60;
+const TIME_MAX = 12;
 
 const ALLOWED_KEYS = new Set();
 for (const d of DAYS) for (let i = 1; i <= ROWS; i++) ALLOWED_KEYS.add(`${d}_${i}`);
+for (let i = 1; i <= ROWS; i++) { ALLOWED_KEYS.add(`start_${i}`); ALLOWED_KEYS.add(`end_${i}`); }
+const maxLen = (k) => (k.startsWith("start_") || k.startsWith("end_") ? TIME_MAX : CELL_MAX);
 
 export default async function handler(req, res) {
   // Sessiya + IP bloki: bloklangan IP'dan keladigan so'rov (boshqa qurilma ham) 403 oladi.
@@ -39,7 +44,7 @@ export default async function handler(req, res) {
       const fields = {};
       for (const k of ALLOWED_KEYS) {
         const v = input[k];
-        if (typeof v === "string" && v.trim()) fields[k] = { stringValue: v.trim().slice(0, CELL_MAX) };
+        if (typeof v === "string" && v.trim()) fields[k] = { stringValue: v.trim().slice(0, maxLen(k)) };
       }
       const r = await fsFetch(`${REST}/jadval/main?${key()}`, {
         method: "PATCH",

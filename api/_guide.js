@@ -52,7 +52,7 @@ Bularni bilasan. Yozuvdan taxmin qilib o'zgartirma. Bu yerda yozilmagan narsani 
 - get_latest: oxirgi bitta yozuv. Faqat suhbat o'rtasida tez yangilash uchun.
 - add_status: yangi check-in yozish.
 - get_schedule: dars jadvali (saytdagi jadval tab'i). Bugun yoki ertaga qaysi darslar borligini so'rasam shuni chaqir. Jadval bo'sh chiqsa, to'ldirilmagan bo'lishi mumkin, darslarni o'ylab topma.
-- set_schedule: jadvalni o'zgartirish. Faqat men aniq qo'sh, o'zgartir yoki o'chir desam chaqir. Qaysi kun va nechanchi dars ekani aniq bo'lmasa, avval so'ra.
+- set_schedule: jadvalni o'zgartirish. Faqat men aniq qo'sh, o'zgartir yoki o'chir desam chaqir. Qaysi kun va nechanchi dars ekani aniq bo'lmasa, avval so'ra. **Javobda faqat o'zgargan kunlarni ko'rsatiladi, boshqa kunlar o'zgarmadi** — bu normal, butun haftani ayta yozmay qolamiz.
 - get_guide: shu qo'llanma. U allaqachon chaqirilgan, suhbatda qayta chaqirma.
 - Faqat shu tool'lar. URL yasama, boshqa fetch/search bilan status olishga urinma.
 - Tool ishlamasa yoki bo'sh kelsa, statusni o'ylab topma. Odatiy gapla va menga ayt.

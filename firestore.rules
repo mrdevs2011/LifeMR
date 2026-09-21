@@ -32,12 +32,13 @@ service cloud.firestore {
     }
 
     // Dars jadvali: bitta doimiy hujjat (jadval/main). "cells" — katak kaliti -> matn (masalan
-    // mon_1 -> "Sinf soati"). Aniq kalitlarni server (api/jadval.js) tekshiradi, bu yerda faqat
-    // umumiy shakl (map, oqilona hajm) va updated_at tekshiriladi.
+    // mon_1 -> "Sinf soati"; vaqtlar: start_1 -> "8:00", end_1 -> "8:45"). Aniq kalitlarni server
+    // (api/jadval.js) tekshiradi, bu yerda faqat umumiy shakl (map, oqilona hajm) va updated_at tekshiriladi.
+    // Hajm: 6 kun x 8 dars = 48 katak + 8 x 2 vaqt kaliti = 64.
     function isValidJadval(data) {
       return data.keys().hasOnly(['cells', 'updated_at'])
           && data.cells is map
-          && data.cells.size() <= 48
+          && data.cells.size() <= 64
           && data.updated_at is timestamp;
     }
 

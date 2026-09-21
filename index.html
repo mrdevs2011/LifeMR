@@ -325,7 +325,7 @@
 
   /* ---- dars jadvali: ixcham grid, katakka bosib to'g'ridan-to'g'ri tahrirlanadi ---- */
   .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -3px; }
-  table.jadval { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .82rem; }
+  table.jadval { border-collapse: collapse; width: 100%; min-width: 600px; font-size: .82rem; }
   table.jadval th, table.jadval td { border: 1px solid var(--border-soft); padding: 0; }
   table.jadval th {
     background: rgba(255, 255, 255, .02); color: var(--text-dim); font-weight: 600;
@@ -344,6 +344,16 @@
   .cell:hover { background: rgba(255, 255, 255, .02); }
   .cell:focus { background: var(--accent-dim); box-shadow: inset 0 0 0 1px var(--accent); }
   .cell:empty::before { content: "\2014"; color: var(--text-faint); }
+  /* vaqt ustuni: tepada boshlanish, pastda tugash (ikkalasi ham oddiy tahrirlanadigan katak), yonida hisoblangan tanaffus */
+  th.timecol { width: 92px; }
+  td.timecell { background: rgba(255, 255, 255, .012); }
+  .timebox { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 3px 6px; }
+  .timebox .stack { display: flex; flex-direction: column; }
+  .cell.tcell {
+    min-width: 0; width: 3.7em; padding: 3px 2px; text-align: center;
+    font-size: .78rem; line-height: 1.3; font-variant-numeric: tabular-nums;
+  }
+  .brk { min-width: 1.9em; font-size: .68rem; color: var(--text-faint); font-variant-numeric: tabular-nums; }
   .jadval-state { font-size: .74rem; color: var(--text-faint); padding: 9px 5px 0; min-height: 1.3em; }
   .jadval-state.saving { color: var(--text-dim); }
   .jadval-state.saved { color: var(--accent); }
@@ -428,6 +438,7 @@
             <thead>
               <tr>
                 <th></th>
+                <th class="timecol" title="Dars boshlanishi va tugashi">Vaqt</th>
                 <th title="Dushanba">Dush</th>
                 <th title="Seshanba">Sesh</th>
                 <th title="Chorshanba">Chor</th>
@@ -686,10 +697,18 @@
   const jadvalBodyEl = document.getElementById('jadvalBody');
   const jadvalStateEl = document.getElementById('jadvalState');
 
+  // Vaqt kataklari kunlar bilan bir xil `.cell`: bir xil saqlanadi/yuklanadi (kalitlari start_<n>, end_<n>).
+  const TIME_KEYS = [];
+  for (let i = 1; i <= ROWS; i++) TIME_KEYS.push(`start_${i}`, `end_${i}`);
+
   (function buildJadvalGrid() {
     let html = '';
     for (let i = 1; i <= ROWS; i++) {
       html += `<tr><td class="rownum">${i}</td>`;
+      html += `<td class="timecell"><div class="timebox"><div class="stack">`
+        + `<div class="cell tcell" contenteditable="true" data-key="start_${i}" aria-label="${i}-dars boshlanishi"></div>`
+        + `<div class="cell tcell" contenteditable="true" data-key="end_${i}" aria-label="${i}-dars tugashi"></div>`
+        + `</div><span class="brk" data-brk="${i}" title="keyingi darsgacha tanaffus (daqiqa)"></span></div></td>`;
       for (const d of DAYS) html += `<td><div class="cell" contenteditable="true" data-key="${d}_${i}"></div></td>`;
       html += '</tr>';
     }
@@ -700,6 +719,48 @@
   let jadvalTimer = null;
   let jadvalDirty = false;
   let jadvalSaving = false;
+
+  const cellEl = (k) => jadvalBodyEl.querySelector(`.cell[data-key="${k}"]`);
+  const toMin = (str) => {
+    const m = /^(\d{1,2})[:.](\d{2})$/.exec((str || '').trim());
+    if (!m || +m[1] > 23 || +m[2] > 59) return null;
+    return +m[1] * 60 + +m[2];
+  };
+  const fmtHM = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
+
+  // "+5" belgisi hisoblanadi (saqlanmaydi): shu darsning tugashi bilan keyingi dars boshlanishi orasidagi farq.
+  // Vaqtni o'zgartirsang, belgi ham o'zi o'zgaradi. Keyingi dars yo'q yoki vaqt noto'g'ri bo'lsa, bo'sh.
+  function updateBreaks() {
+    for (let i = 1; i <= ROWS; i++) {
+      const el = jadvalBodyEl.querySelector(`[data-brk="${i}"]`);
+      if (!el) continue;
+      const end = toMin(cellEl(`end_${i}`)?.textContent);
+      const next = toMin(cellEl(`start_${i + 1}`)?.textContent);
+      const gap = end != null && next != null ? next - end : null;
+      el.textContent = gap != null && gap > 0 && gap <= 120 ? `+${gap}` : '';
+    }
+  }
+
+  // Boshlang'ich vaqtlar: FAQAT vaqt ustuni butunlay bo'sh bo'lganda va jadval birinchi ochilganda bir marta yoziladi.
+  // Keyin ular oddiy saqlanadigan kataklar: qiymat kodda qotib qolmagan, xohlagan katakni o'zing o'zgartirasan.
+  const SEED = { first: 8 * 60, lesson: 45, brk: 5, count: 6 }; // 8:00 dan, 45 daqiqa dars + 5 daqiqa tanaffus, 6 ta dars
+  function seedTimes() {
+    for (let i = 1; i <= Math.min(SEED.count, ROWS); i++) {
+      const start = SEED.first + (i - 1) * (SEED.lesson + SEED.brk);
+      cellEl(`start_${i}`).textContent = fmtHM(start);
+      cellEl(`end_${i}`).textContent = fmtHM(start + SEED.lesson);
+    }
+    updateBreaks();
+    markJadvalDirty();
+  }
+
+  function markJadvalDirty() {
+    jadvalDirty = true;
+    jadvalStateEl.textContent = 'yozilmoqda...';
+    jadvalStateEl.className = 'jadval-state';
+    if (jadvalTimer) clearTimeout(jadvalTimer);
+    jadvalTimer = setTimeout(saveJadval, 5000);
+  }
 
   tabsEl.addEventListener('click', (e) => {
     const b = e.target.closest('.tab');
@@ -739,7 +800,9 @@
         const v = cells[el.dataset.key] || '';
         if (el.textContent !== v) el.textContent = v;
       });
+      updateBreaks();
       if (!silent) jadvalStateEl.textContent = '';
+      if (!silent && !TIME_KEYS.some(k => cells[k])) seedTimes();
     } catch (err) {
       if (silent) return;
       jadvalStateEl.textContent = `xato: ${err.message || err}`;
@@ -782,11 +845,8 @@
 
   jadvalBodyEl.addEventListener('input', (e) => {
     if (!e.target.closest('.cell')) return;
-    jadvalDirty = true;
-    jadvalStateEl.textContent = 'yozilmoqda...';
-    jadvalStateEl.className = 'jadval-state';
-    if (jadvalTimer) clearTimeout(jadvalTimer);
-    jadvalTimer = setTimeout(saveJadval, 5000);
+    updateBreaks();
+    markJadvalDirty();
   });
 
   // Enter — keyingi qatorga tushirmaydi, shunchaki katakdan chiqadi (jadval bir qatorli bo'lib qolsin).
