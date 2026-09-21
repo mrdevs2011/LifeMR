@@ -87,8 +87,8 @@ Claude'ning suhbat uslubi va barcha qoidalari `api/_guide.js` ichida.
 ## 7. Dars jadvali va vaqtlar (sayt)
 
 - `Vaqt` ustuni: har dars uchun boshlanish (tepada) va tugash (pastda), oddiy tahrirlanadigan katak. `+5` keyingi darsgacha tanaffus: vaqtlardan hisoblanadi, saqlanmaydi.
-- Vaqt ustuni butunlay bo'sh bo'lsa, jadval birinchi ochilganda boshlang'ich vaqtlar yoziladi (8:00 dan, 45 daqiqa dars + 5 daqiqa tanaffus, 6 ta dars). Shu qoida `index.html` dagi `SEED` da. Yozilgandan keyin bu oddiy ma'lumot, xohlagan katakni o'zgartirasan.
-- Vaqtlar `jadval/main` ichidagi `cells` xaritasida `start_<n>` / `end_<n>` kalitlari bilan turadi. `api/jadval.js` ham, `api/mcp.js` ham shu kalitlarni bilishi shart (ikkalasi ham butun xaritani almashtirib yozadi). Claude `get_schedule` da har dars vaqtini va `bell_times` ni ko'radi.
+- Jadvalda kodga yozilgan qiymat yo'q: vaqtlar ham, dars matnlari ham faqat Firestore'dan o'qiladi. Katak bo'sh bo'lsa, bo'sh ko'rinadi (placeholder ham yo'q). Boshlang'ich (seed) vaqtlar olib tashlangan: bo'sh ustunni o'zing yozasan, yoki Claude'ga `set_schedule` (`bell_times`) bilan yozdirasan.
+- Vaqtlar `jadval/main` ichidagi `cells` xaritasida `start_<n>` / `end_<n>` kalitlari bilan turadi. `api/jadval.js` ham, `api/mcp.js` ham shu kalitlarni bilishi shart (ikkalasi ham butun xaritani almashtirib yozadi). Claude `get_schedule` da har dars vaqtini, `bell_times` ni va hisoblangan `break_after_min` (saytdagi `+5`) ni ko'radi. `set_schedule` esa kataklar (`changes`) bilan birga vaqtlarni ham (`bell_times`: dars raqami + `start`/`end`, masalan `8:50`) o'zgartira oladi. Berilmagan maydon o'zgarmaydi, bo'sh matn tozalaydi, tugash boshlanishdan keyin bo'lmasa rad etadi.
 - `firestore.rules` dagi `cells.size()` chegarasi 64 (48 katak + 16 vaqt kaliti). Rules'ni Firebase Console'da alohida **Publish** qilish shart, aks holda jadval to'lganda saqlash rad etiladi.
 
 ## Xavfsizlik eslatmalari

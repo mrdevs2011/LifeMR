@@ -51,8 +51,8 @@ Bularni bilasan. Yozuvdan taxmin qilib o'zgartirma. Bu yerda yozilmagan narsani 
 - get_stats: server hisoblagan raqamlar (yozuv matnisiz). Raqamlarni o'zing sanama (istisno: 6-bo'limdagi :N belgilari).
 - get_latest: oxirgi bitta yozuv. Faqat suhbat o'rtasida tez yangilash uchun.
 - add_status: yangi check-in yozish.
-- get_schedule: dars jadvali (saytdagi jadval tab'i). Bugun yoki ertaga qaysi darslar borligini so'rasam shuni chaqir. Jadval bo'sh chiqsa, to'ldirilmagan bo'lishi mumkin, darslarni o'ylab topma.
-- set_schedule: jadvalni o'zgartirish. Faqat men aniq qo'sh, o'zgartir yoki o'chir desam chaqir. Qaysi kun va nechanchi dars ekani aniq bo'lmasa, avval so'ra. **Javobda faqat o'zgargan kunlarni ko'rsatiladi, boshqa kunlar o'zgarmadi** — bu normal, butun haftani ayta yozmay qolamiz.
+- get_schedule: dars jadvali (saytdagi jadval tab'i). Bugun yoki ertaga qaysi darslar borligini so'rasam shuni chaqir. Har darsning boshlanish-tugash vaqti ham keladi (bell_times, break_after_min = keyingi darsgacha tanaffus). Jadval bo'sh chiqsa, to'ldirilmagan bo'lishi mumkin, darslarni o'ylab topma.
+- set_schedule: jadvalni o'zgartirish. Faqat men aniq qo'sh, o'zgartir yoki o'chir desam chaqir. Dars vaqtlarini ham shu tool o'zgartiradi (bell_times: dars raqami + start/end, masalan 8:50). Vaqt har dars raqamiga bitta, barcha kunlarga bir xil. Qaysi kun va nechanchi dars ekani aniq bo'lmasa, avval so'ra. **Javobda faqat o'zgargan kunlarni ko'rsatiladi, boshqa kunlar o'zgarmadi** — bu normal, butun haftani ayta yozmay qolamiz.
 - get_guide: shu qo'llanma. U allaqachon chaqirilgan, suhbatda qayta chaqirma.
 - Faqat shu tool'lar. URL yasama, boshqa fetch/search bilan status olishga urinma.
 - Tool ishlamasa yoki bo'sh kelsa, statusni o'ylab topma. Odatiy gapla va menga ayt.

@@ -343,7 +343,8 @@
   }
   .cell:hover { background: rgba(255, 255, 255, .02); }
   .cell:focus { background: var(--accent-dim); box-shadow: inset 0 0 0 1px var(--accent); }
-  .cell:empty::before { content: "\2014"; color: var(--text-faint); }
+  /* Bo'sh katakda hech qanday matn yo'q (placeholder ham). Bosiladigan joy ekanini faqat rang bilan bildiramiz. */
+  .cell.tcell:empty { background: rgba(255, 255, 255, .018); }
   /* vaqt ustuni: tepada boshlanish, pastda tugash (ikkalasi ham oddiy tahrirlanadigan katak), yonida hisoblangan tanaffus */
   th.timecol { width: 92px; }
   td.timecell { background: rgba(255, 255, 255, .012); }
@@ -698,8 +699,7 @@
   const jadvalStateEl = document.getElementById('jadvalState');
 
   // Vaqt kataklari kunlar bilan bir xil `.cell`: bir xil saqlanadi/yuklanadi (kalitlari start_<n>, end_<n>).
-  const TIME_KEYS = [];
-  for (let i = 1; i <= ROWS; i++) TIME_KEYS.push(`start_${i}`, `end_${i}`);
+  // Kodda hech qanday qiymat yo'q: vaqtlar ham, matnlar ham faqat Firestore'dan keladi.
 
   (function buildJadvalGrid() {
     let html = '';
@@ -726,7 +726,6 @@
     if (!m || +m[1] > 23 || +m[2] > 59) return null;
     return +m[1] * 60 + +m[2];
   };
-  const fmtHM = (min) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`;
 
   // "+5" belgisi hisoblanadi (saqlanmaydi): shu darsning tugashi bilan keyingi dars boshlanishi orasidagi farq.
   // Vaqtni o'zgartirsang, belgi ham o'zi o'zgaradi. Keyingi dars yo'q yoki vaqt noto'g'ri bo'lsa, bo'sh.
@@ -739,19 +738,6 @@
       const gap = end != null && next != null ? next - end : null;
       el.textContent = gap != null && gap > 0 && gap <= 120 ? `+${gap}` : '';
     }
-  }
-
-  // Boshlang'ich vaqtlar: FAQAT vaqt ustuni butunlay bo'sh bo'lganda va jadval birinchi ochilganda bir marta yoziladi.
-  // Keyin ular oddiy saqlanadigan kataklar: qiymat kodda qotib qolmagan, xohlagan katakni o'zing o'zgartirasan.
-  const SEED = { first: 8 * 60, lesson: 45, brk: 5, count: 6 }; // 8:00 dan, 45 daqiqa dars + 5 daqiqa tanaffus, 6 ta dars
-  function seedTimes() {
-    for (let i = 1; i <= Math.min(SEED.count, ROWS); i++) {
-      const start = SEED.first + (i - 1) * (SEED.lesson + SEED.brk);
-      cellEl(`start_${i}`).textContent = fmtHM(start);
-      cellEl(`end_${i}`).textContent = fmtHM(start + SEED.lesson);
-    }
-    updateBreaks();
-    markJadvalDirty();
   }
 
   function markJadvalDirty() {
@@ -802,7 +788,6 @@
       });
       updateBreaks();
       if (!silent) jadvalStateEl.textContent = '';
-      if (!silent && !TIME_KEYS.some(k => cells[k])) seedTimes();
     } catch (err) {
       if (silent) return;
       jadvalStateEl.textContent = `xato: ${err.message || err}`;
