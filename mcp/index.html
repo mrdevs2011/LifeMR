@@ -116,6 +116,15 @@
 
   .field { display: flex; gap: 8px; }
 
+  #gate { display: flex; flex-direction: column; gap: 8px; }
+  #gate input, #gate button { width: 100%; }
+  #gate button {
+    background: var(--bg);
+    color: var(--text);
+    border-color: var(--border);
+  }
+  #gate button:hover { border-color: var(--accent); color: var(--accent); }
+
   input {
     flex: 1;
     min-width: 0;
@@ -161,13 +170,9 @@
     <p class="state" id="state" role="status" aria-live="polite">Kirish</p>
 
     <form id="gate" autocomplete="off">
-      <div class="field">
-        <input id="email" name="email" type="email" placeholder="Email" autocomplete="off" required>
-      </div>
-      <div class="field">
-        <input id="pass" name="password" type="password" placeholder="Parol" autocomplete="off" required>
-        <button id="passBtn" type="submit">Kirish</button>
-      </div>
+      <input id="email" name="email" type="email" placeholder="Email" autocomplete="off" required>
+      <input id="pass" name="password" type="password" placeholder="Parol" autocomplete="off" required>
+      <button id="passBtn" type="submit">Kirish</button>
     </form>
 
     <div id="reveal" hidden>
