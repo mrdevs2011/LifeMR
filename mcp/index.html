@@ -221,8 +221,12 @@
 
       if (r.ok && data.url) {
         showUrl(data.url);
+      } else if (r.status === 403) {
+        setState("IP manzilingiz bloklandi", 'err');
+        setTimeout(() => location.reload(), 1200); // yangilangach sahifa bloklangan holatda ochiladi
       } else if (r.status === 401) {
-        setState("email yoki parol noto'g'ri", 'err');
+        const left = data.attempts_left;
+        setState("email yoki parol noto'g'ri" + (left ? `. ${left} ta urinish qoldi` : ''), 'err');
       } else if (r.status === 429) {
         setState(`juda ko'p urinish. ${data.retry_after_sec || 60} soniya kuting`, 'err');
       } else {
@@ -252,6 +256,18 @@
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && !revealEl.hidden) lock('sahifadan chiqding, manzil yopildi');
   });
+
+  // Sahifa ochilganda: IP oldin bloklanganmi?
+  fetch('/api/mcp-link', { cache: 'no-store' })
+    .then((r) => r.json())
+    .then((d) => {
+      if (d && d.blocked) {
+        gateEl.hidden = true;
+        gateEl.style.display = 'none';
+        setState('IP manzilingiz bloklangan', 'err');
+      }
+    })
+    .catch(() => {});
 
   passEl.focus();
 </script>

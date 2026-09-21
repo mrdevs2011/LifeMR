@@ -1,0 +1,285 @@
+// api/_lib.js  (pastki chiziq: Vercel buni alohida endpoint qilmaydi, faqat boshqa fayllar import qiladi)
+//
+// Umumiy qatlam: bitta login, bitta IP hisobi, bitta sessiya.
+//   - Sayt (/) va /mcp sahifasi AYNAN BIR XIL authenticate() dan o'tadi.
+//   - IP hisobi butun domen uchun bitta: `ipguard/{sha256(ip)}` (sahifaga bog'liq emas).
+//   - 3 ta noto'g'ri urinish 5 DAQIQA ichida bo'lsa, IP doimiy bloklanadi. Urinishlar orasi 5 daqiqadan
+//     oshsa, eskisi hisobdan chiqadi (sirpanuvchi oyna).
+//   - Email: kiritilgani va env'dagi OWNER_EMAIL SHA-256 qilinib vaqt-xavfsiz solishtiriladi.
+//   - Parol: scrypt hash (env OWNER_PASS_HASH) bilan tekshiriladi. Parolning o'zi hech qayerda saqlanmaydi.
+//   - Sessiya: imzolangan (HMAC) httpOnly cookie. Brauzerda localStorage/IndexedDB ishlatilmaydi.
+//
+// Env: FS_KEY, OWNER_EMAIL, OWNER_PASS_HASH, SESSION_SECRET, CLAUDE_EMAIL, CLAUDE_PASSWORD, MCP_TOKEN
+
+import { createHash, createHmac, scrypt, timingSafeEqual } from "node:crypto";
+
+export const PROJECT_ID = "mrabout";
+export const MAX_FAILS = 3;
+export const WINDOW_MS = 5 * 60_000;
+export const SESSION_MS = 7 * 24 * 3600_000;
+const COOKIE = "mrs";
+
+// ---------------------------------------------------------------------------
+// Kichik yordamchilar
+// ---------------------------------------------------------------------------
+export function send(res, status, obj, headers = {}) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
+  res.end(JSON.stringify(obj));
+}
+
+export function clientIp(req) {
+  const xf = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return xf || req.socket?.remoteAddress || "unknown";
+}
+
+export async function readJson(req) {
+  if (req.body !== undefined && req.body !== null) {
+    if (typeof req.body === "string") return JSON.parse(req.body);
+    if (Buffer.isBuffer(req.body)) return JSON.parse(req.body.toString("utf8"));
+    return req.body;
+  }
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  return JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}");
+}
+
+const sha = (v) => createHash("sha256").update(String(v).trim().toLowerCase()).digest();
+const ipKey = (ip) => createHash("sha256").update(String(ip)).digest("hex").slice(0, 32);
+
+// ---------------------------------------------------------------------------
+// Parol (scrypt) va email (hash) tekshiruvi
+// ---------------------------------------------------------------------------
+function scryptAsync(password, salt, len) {
+  return new Promise((resolve, reject) =>
+    scrypt(password, salt, len, { N: 16384, r: 8, p: 1 }, (e, k) => (e ? reject(e) : resolve(k)))
+  );
+}
+
+// Format: scrypt$<salt hex>$<hash hex>   (tools/hash-password.mjs shuni yaratadi)
+export async function hashPassword(password, saltHex) {
+  const salt = Buffer.from(saltHex, "hex");
+  const key = await scryptAsync(String(password).normalize("NFKC"), salt, 64);
+  return `scrypt$${saltHex}$${key.toString("hex")}`;
+}
+
+async function verifyPassword(password, stored) {
+  const parts = String(stored || "").split("$");
+  // Tuzilmasa ham scrypt ishlaydi (vaqt farqi sizib chiqmasin), natija baribir false.
+  const valid = parts.length === 3 && parts[0] === "scrypt";
+  const saltHex = valid ? parts[1] : "00".repeat(16);
+  const got = await scryptAsync(String(password).normalize("NFKC"), Buffer.from(saltHex, "hex"), 64);
+  if (!valid) return false;
+  const want = Buffer.from(parts[2], "hex");
+  return want.length === got.length && timingSafeEqual(want, got);
+}
+
+// Email va parol HAR DOIM ikkalasi ham hisoblanadi: qaysi biri xato ekanini javob tezligidan bilib bo'lmasin.
+async function credentialsOk(email, password) {
+  const emailOk = timingSafeEqual(sha(email), sha(process.env.OWNER_EMAIL || ""));
+  const passOk = await verifyPassword(password, process.env.OWNER_PASS_HASH);
+  return emailOk && passOk;
+}
+
+// ---------------------------------------------------------------------------
+// Claude akkaunti bilan Firestore (IP hisobi va yozuvlar uchun)
+// ---------------------------------------------------------------------------
+const DOCS = `projects/${PROJECT_ID}/databases/(default)/documents`;
+export const REST = `https://firestore.googleapis.com/v1/${DOCS}`;
+export const DOCS_PATH = DOCS;
+const tokenCache = { token: null, exp: 0 };
+
+async function getIdToken() {
+  if (tokenCache.token && Date.now() < tokenCache.exp) return tokenCache.token;
+  const r = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FS_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: process.env.CLAUDE_EMAIL,
+        password: process.env.CLAUDE_PASSWORD,
+        returnSecureToken: true,
+      }),
+    }
+  );
+  if (!r.ok) throw new Error(`Firebase (Claude akkaunti) login xatosi: HTTP ${r.status}`);
+  const d = await r.json();
+  if (!d.idToken) throw new Error("Firebase login: idToken qaytmadi");
+  tokenCache.token = d.idToken;
+  tokenCache.exp = Date.now() + Math.max(60, Number(d.expiresIn || 3600) - 120) * 1000;
+  return d.idToken;
+}
+
+export async function fsFetch(url, opts = {}, retried = false) {
+  const t = await getIdToken();
+  const r = await fetch(url, {
+    ...opts,
+    headers: { "Content-Type": "application/json", ...(opts.headers || {}), Authorization: `Bearer ${t}` },
+  });
+  if ((r.status === 401 || r.status === 403) && !retried) {
+    tokenCache.token = null;
+    tokenCache.exp = 0;
+    return fsFetch(url, opts, true);
+  }
+  return r;
+}
+
+export const key = () => `key=${process.env.FS_KEY}`;
+
+// ---------------------------------------------------------------------------
+// IP guard: Firestore (asosiy) + xotira (zaxira)
+// Hujjat: ipguard/{id} = { hits: [timestamp...], blocked: bool, ts }
+// Har urinish TEKSHIRUVDAN OLDIN yoziladi (pre-charge), shuning uchun parallel so'rovlar bilan
+// 3 tadan ko'p parolni sinab bo'lmaydi. Yozuv optimistik qulf (updateTime) bilan, poyga bo'lmaydi.
+// ---------------------------------------------------------------------------
+const parseDoc = (d) => ({
+  blocked: d?.fields?.blocked?.booleanValue === true,
+  hits: (d?.fields?.hits?.arrayValue?.values || []).map((v) => Date.parse(v.timestampValue)).filter(Number.isFinite),
+  updateTime: d?.updateTime || null,
+});
+
+async function fsReadGuard(id) {
+  const r = await fsFetch(`${REST}/ipguard/${id}?${key()}`);
+  if (r.status === 404) return { blocked: false, hits: [], updateTime: null };
+  if (!r.ok) throw new Error(`guard get ${r.status}`);
+  return parseDoc(await r.json());
+}
+
+async function fsWriteGuard(id, state, updateTime) {
+  const nowIso = new Date().toISOString();
+  const r = await fsFetch(`${REST}:commit?${key()}`, {
+    method: "POST",
+    body: JSON.stringify({
+      writes: [{
+        update: {
+          name: `${DOCS}/ipguard/${id}`,
+          fields: {
+            hits: { arrayValue: { values: state.hits.map((t) => ({ timestampValue: new Date(t).toISOString() })) } },
+            blocked: { booleanValue: state.blocked },
+            ts: { timestampValue: nowIso },
+          },
+        },
+        currentDocument: updateTime ? { updateTime } : { exists: false },
+      }],
+    }),
+  });
+  if (r.ok) return true;
+  const e = await r.json().catch(() => ({}));
+  const st = String(e?.error?.status || "");
+  if (r.status === 409 || st === "ABORTED" || st === "FAILED_PRECONDITION" || st === "ALREADY_EXISTS") return false;
+  throw new Error(`guard write ${r.status}`);
+}
+
+const fsGuard = {
+  async peek(id) {
+    return (await fsReadGuard(id)).blocked;
+  },
+  async charge(id) {
+    for (let i = 0; i < 6; i++) {
+      const cur = await fsReadGuard(id);
+      if (cur.blocked) return { blocked: true };
+      const now = Date.now();
+      const hits = cur.hits.filter((t) => t > now - WINDOW_MS);
+      const next = [...hits, now].slice(-MAX_FAILS);
+      const blockNow = hits.length + 1 >= MAX_FAILS;
+      if (await fsWriteGuard(id, { hits: next, blocked: blockNow }, cur.updateTime)) {
+        return { blocked: false, count: hits.length + 1 };
+      }
+    }
+    return { contended: true };
+  },
+  async reset(id) {
+    for (let i = 0; i < 6; i++) {
+      const cur = await fsReadGuard(id);
+      if (await fsWriteGuard(id, { hits: [], blocked: false }, cur.updateTime)) return;
+    }
+  },
+};
+
+const guardReady = () => Boolean(process.env.FS_KEY && process.env.CLAUDE_EMAIL && process.env.CLAUDE_PASSWORD);
+
+// FAIL-CLOSED: xotiradagi zaxira yo'q. Sabab: Vercel serverless'da instance har safar
+// yangilanishi mumkin, shuning uchun xotiradagi hisob ishonchli emas — u orqali IP bloki
+// "unutilib" ketishi mumkin edi. Shuning uchun Firestore ishlamasa yoki sozlanmagan bo'lsa,
+// login butunlay TO'XTATILADI (503), zaif himoya bilan davom etishdan ko'ra.
+async function guardCall(method, id, ...a) {
+  if (!guardReady()) throw new Error("guard_not_configured");
+  return fsGuard[method](id, ...a);
+}
+
+// Faqat sahifada formani ko'rsatish/berkitish uchun ishlatiladi (kosmetik).
+// Xato bo'lsa "blocked emas" deb hisoblaydi — haqiqiy tekshiruv authenticate() ichida,
+// u yerda xato bo'lsa kirish 503 bilan to'xtatiladi (pastga qara).
+export async function isBlocked(req) {
+  try {
+    return Boolean(await guardCall("peek", ipKey(clientIp(req))));
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Yagona login: sayt ham, /mcp ham shu funksiyadan o'tadi.
+// Qaytaradi: { ok:true } | { status, body }
+// ---------------------------------------------------------------------------
+export async function authenticate(req, email, password) {
+  for (const k of ["OWNER_EMAIL", "OWNER_PASS_HASH"]) {
+    if (!process.env[k]) return { status: 500, body: { error: `${k} sozlanmagan` } };
+  }
+  if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
+    return { status: 400, body: { error: "email va parol kerak" } };
+  }
+  if (password.length > 512 || email.length > 320) return { status: 400, body: { error: "noto'g'ri so'rov" } };
+
+  const id = ipKey(clientIp(req));
+  let c;
+  try {
+    c = await guardCall("charge", id);
+  } catch {
+    // Firestore ishlamayapti / sozlanmagan — himoyasiz qoldirishdan ko'ra login'ni to'xtatamiz.
+    return { status: 503, body: { error: "vaqtincha_ishlamayapti" } };
+  }
+  if (c.blocked) return { status: 403, body: { error: "bloklangan" } };
+  if (c.contended) return { status: 429, body: { error: "juda_kop_urinish", retry_after_sec: 5 } };
+
+  if (await credentialsOk(email, password)) {
+    try {
+      await guardCall("reset", id);
+    } catch {
+      /* muhim emas: reset o'tmasa keyingi urinish hisobi biroz noaniq bo'ladi, xavfsizlikka ta'sir yo'q */
+    }
+    return { ok: true };
+  }
+  const left = MAX_FAILS - c.count;
+  if (left <= 0) return { status: 403, body: { error: "bloklangan" } };
+  return { status: 401, body: { error: "notogri_parol", attempts_left: left } };
+}
+
+// ---------------------------------------------------------------------------
+// Sessiya cookie (HMAC imzo)
+// ---------------------------------------------------------------------------
+const sign = (exp) => createHmac("sha256", process.env.SESSION_SECRET || "").update(String(exp)).digest("hex");
+
+export function sessionCookie() {
+  const exp = Date.now() + SESSION_MS;
+  return `${COOKIE}=${exp}.${sign(exp)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_MS / 1000}`;
+}
+
+export const clearCookie = () => `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`;
+
+export function hasSession(req) {
+  if (!process.env.SESSION_SECRET) return false;
+  const raw = String(req.headers.cookie || "")
+    .split(";")
+    .map((s) => s.trim())
+    .find((s) => s.startsWith(`${COOKIE}=`));
+  if (!raw) return false;
+  const [exp, sig] = raw.slice(COOKIE.length + 1).split(".");
+  if (!/^\d+$/.test(exp || "") || Number(exp) < Date.now() || !sig) return false;
+  const want = Buffer.from(sign(exp), "hex");
+  const got = Buffer.from(sig, "hex");
+  return want.length === got.length && timingSafeEqual(want, got);
+}

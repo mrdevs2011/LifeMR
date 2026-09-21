@@ -3,16 +3,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---- Ruxsat ro'yxati (allowlist) ----
-    // Faqat shu ikkita Firebase Auth akkaunt kira oladi:
-    //   a3Uy5SYkKLdM9KfYtw15ZXcwROL2  = sening akkaunting (sayt)
-    //   CLAUDE_UID = Claude'ning MCP akkaunti (Vercel'dagi server shu bilan kiradi)
-    // UID'ni Firebase Console -> Authentication -> Users -> "User UID" ustunidan nusxala.
-    // Placeholder almashtirilmasa hech kim kira olmaydi (yopiq holat).
-    // Boshqa odam qo'shish yoki olib tashlash = ro'yxatni o'zgartirib qayta Publish qilish.
-    function isAllowed() {
-      return request.auth != null
-          && request.auth.uid in ['a3Uy5SYkKLdM9KfYtw15ZXcwROL2', 'iMuJhsmeu1Xt6SJBE1fai3ure3F3'];
+    // Endi hamma narsa serverdan o'tadi (sayt ham, /mcp ham, Claude ham).
+    // Firestore'ga faqat server kiradi, Claude akkaunti bilan. Boshqa hech kim (egasi akkaunti ham) to'g'ridan-to'g'ri kira olmaydi.
+    function isClaude() {
+      return request.auth != null && request.auth.uid == 'iMuJhsmeu1Xt6SJBE1fai3ure3F3';
     }
 
     function isValidCheckin(data) {
@@ -26,14 +20,29 @@ service cloud.firestore {
           && data.timestamp is timestamp;
     }
 
+    function isValidGuard(data) {
+      return data.keys().hasOnly(['hits', 'blocked', 'ts'])
+          && data.hits is list
+          && data.hits.size() <= 3
+          && data.blocked is bool
+          && data.ts is timestamp;
+    }
+
     match /checkins/{docId} {
-      allow read: if isAllowed();
-      allow create: if isAllowed() && isValidCheckin(request.resource.data);
+      allow read: if isClaude();
+      allow create: if isClaude() && isValidCheckin(request.resource.data);
       // Log immutable: eski yozuvni hech kim o'zgartira yoki o'chira olmaydi.
       allow update, delete: if false;
     }
 
-    // Qolgan hamma narsa yopiq (config/access ham: parol hash'i endi Firestore'da yo'q).
+    // IP bloklash hisobi. Bloklangan IP'ni ochish: Firebase Console -> Firestore -> ipguard -> hujjatni o'chir
+    // (Console rules'ni chetlab o'tadi).
+    match /ipguard/{id} {
+      allow read: if isClaude();
+      allow create, update: if isClaude() && isValidGuard(request.resource.data);
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

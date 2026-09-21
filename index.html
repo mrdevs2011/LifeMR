@@ -385,33 +385,6 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import {
-    getFirestore, collection, addDoc, serverTimestamp,
-    query, orderBy, limit, onSnapshot
-  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import {
-    initializeAuth, inMemoryPersistence, signInWithEmailAndPassword, onAuthStateChanged, signOut
-  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-
-  // Your web app's Firebase configuration
-  // apiKey: Security Rules tarafindan himoya qilinadi — bu public bo'lishi mumkin
-  const firebaseConfig = {
-    apiKey: "AIzaSyAvvkcbKlbrplbh29m2MmVfiypvlGAEglg", // Firebase Security Rules himoya qiladi
-    authDomain: "mrabout.firebaseapp.com",
-    projectId: "mrabout",
-    storageBucket: "mrabout.firebasestorage.app",
-    messagingSenderId: "544262128836",
-    appId: "1:544262128836:web:f6c54edcaf50fa1c8eb591"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  // Sessiya faqat RAM'da: localStorage / sessionStorage / IndexedDB'ga hech narsa yozilmaydi (email ham, token ham).
-  // Sahifa yopilsa yoki yangilansa sessiya yo'qoladi, qayta kirasan.
-  const auth = initializeAuth(app, { persistence: inMemoryPersistence });
-
-
   const logEl = document.getElementById('log');
   const formEl = document.getElementById('statusForm');
   const inputEl = document.getElementById('holatInput');
@@ -644,14 +617,24 @@
   });
 
   // ---- AUTH OQIMI ----
-  // Ma'lumotni himoya qiladigan narsa Firestore rules (faqat ruxsat ro'yxatidagi UID'lar).
-  // Bu yerdagi login shunchaki o'sha akkauntga kirish: anonim kirish va client-side parol gate yo'q.
-  let unsubscribe = null;
+  // Login server orqali (/api/login): sayt ham, /mcp ham bitta eshikdan kiradi, IP hisobi ham bitta.
+  // Sessiya = serverdan kelgan httpOnly cookie. Brauzerda localStorage/sessionStorage/IndexedDB ishlatilmaydi,
+  // JavaScript cookie'ni o'qiy olmaydi. Email/parol hech qayerda saqlanmaydi.
   let unlocked = false;
+  let pollTimer = null;
+  let loading = false;
+
+  const api = async (path, opts = {}) => {
+    const r = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...opts });
+    const data = await r.json().catch(() => ({}));
+    return { r, data };
+  };
+
+  function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
 
   function showGate(msg = 'kirish', kind = '') {
     unlocked = false;
-    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    stopPolling();
     contentEl.style.display = 'none';
     gateEl.style.display = 'flex';
     loginFormEl.style.display = 'flex';
@@ -659,7 +642,41 @@
     gateStateEl.className = 'state' + (kind ? ' ' + kind : '');
     logEl.innerHTML = '';
     prevTodayHas = null;
-    (emailInputEl.value ? passInputEl : emailInputEl).focus();
+    emailInputEl.value = '';
+    passInputEl.value = '';
+    emailInputEl.focus();
+  }
+
+  function showBlocked() {
+    unlocked = false;
+    stopPolling();
+    contentEl.style.display = 'none';
+    gateEl.style.display = 'flex';
+    loginFormEl.style.display = 'none';
+    gateStateEl.textContent = 'IP manzilingiz bloklangan';
+    gateStateEl.className = 'state err';
+  }
+
+  // Server yozuvlarini eski render() kutgan shaklga o'giramiz
+  const asDocs = (items) => items.map(x => ({
+    data: () => ({ vaqt: x.vaqt, holat: x.holat, timestamp: { toDate: () => new Date(x.ts || Date.now()) } })
+  }));
+
+  async function loadLog() {
+    if (loading || !unlocked) return;
+    loading = true;
+    try {
+      const { r, data } = await api('/api/checkins');
+      if (r.status === 401) { showGate('sessiya tugadi, qayta kir', 'err'); return; }
+      if (!r.ok) throw new Error(data.error || r.status);
+      render(asDocs(data.items || []));
+    } catch (err) {
+      if (unlocked && !logEl.querySelector('.day')) {
+        logEl.innerHTML = `<div class="state err">xato: ma'lumot yuklanmadi (${esc(String(err.message || err))})</div>`;
+      }
+    } finally {
+      loading = false;
+    }
   }
 
   function unlockApp() {
@@ -667,20 +684,12 @@
     unlocked = true;
     gateEl.style.display = 'none';
     contentEl.style.display = 'block';
-
-    // Real-vaqtda tinglash: yangi yozuv kelsa avtomatik yangilanadi
-    const q = query(collection(db, "checkins"), orderBy("timestamp", "desc"), limit(300));
-    unsubscribe = onSnapshot(q, snap => {
-      render(snap.docs);
-    }, err => {
-      if (err.code === 'permission-denied') {
-        // Akkaunt rules'dagi ruxsat ro'yxatida yo'q
-        signOut(auth).finally(() => showGate("bu akkauntga ruxsat yo'q", 'err'));
-        return;
-      }
-      logEl.innerHTML = `<div class="state err">xato: ma'lumot yuklanmadi (${esc(err.message)})</div>`;
-    });
+    loadLog();
+    // "jonli" yangilanish: sahifa ochiq va ko'rinib turgan paytda har 10 soniyada
+    pollTimer = setInterval(() => { if (!document.hidden) loadLog(); }, 10000);
   }
+
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && unlocked) loadLog(); });
 
   loginFormEl.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -692,50 +701,66 @@
     gateStateEl.textContent = 'tekshirilmoqda...';
     gateStateEl.className = 'state';
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      const { r, data } = await api('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      emailInputEl.value = '';
       passInputEl.value = '';
-      // keyingi qadamni onAuthStateChanged bajaradi
-    } catch (err) {
-      passInputEl.value = '';
-      const msg = err.code === 'auth/too-many-requests'
-        ? "juda ko'p urinish, birozdan keyin qayta urin"
-        : "email yoki parol noto'g'ri";
+      if (r.ok) { unlockApp(); return; }
+      if (r.status === 403) {
+        gateStateEl.textContent = 'IP manzilingiz bloklandi';
+        gateStateEl.className = 'state err';
+        setTimeout(() => location.reload(), 1200); // yangilangach sahifa bloklangan holatda ochiladi
+        return;
+      }
+      let msg = "email yoki parol noto'g'ri";
+      if (r.status === 401 && data.attempts_left) msg += `. ${data.attempts_left} ta urinish qoldi`;
+      else if (r.status === 429) msg = "juda ko'p so'rov, bir necha soniyadan keyin qayta urin";
+      else if (r.status >= 500) msg = `server xatosi: ${data.error || r.status}`;
       gateStateEl.textContent = msg;
+      gateStateEl.className = 'state err';
+    } catch {
+      passInputEl.value = '';
+      gateStateEl.textContent = "server bilan bog'lanib bo'lmadi";
       gateStateEl.className = 'state err';
     } finally {
       passBtnEl.disabled = false;
     }
   });
 
-  logoutBtnEl.addEventListener('click', () => { signOut(auth); });
+  logoutBtnEl.addEventListener('click', async () => {
+    await api('/api/logout', { method: 'POST' }).catch(() => {});
+    showGate('chiqding');
+  });
 
   // Yangi yozuv (forma bir marta ulanadi)
   formEl.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!auth.currentUser) return;
+    if (!unlocked) return;
     let holat = inputEl.value.trim();
     if (!holat) return;
     if (energy && !/\s:[1-5]$/.test(holat)) holat += ` :${energy}`;
-
-    const now = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    const vaqt = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
 
     btnEl.disabled = true;
     formStateEl.textContent = '';
     formStateEl.className = 'state';
 
     try {
-      await addDoc(collection(db, "checkins"), {
-        vaqt,
-        holat,
-        timestamp: serverTimestamp(),
+      const { r, data } = await api('/api/checkins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ holat }),
       });
+      if (r.status === 401) { showGate('sessiya tugadi, qayta kir', 'err'); return; }
+      if (!r.ok) throw new Error(data.error || r.status);
       inputEl.value = '';
       resetEnergy();
       formStateEl.textContent = 'yuborildi ✓';
       formStateEl.className = 'state ok';
       setTimeout(() => { formStateEl.textContent = ''; }, 2000);
+      loadLog();
     } catch (err) {
       formStateEl.textContent = `xato: ${err.message}`;
       formStateEl.className = 'state err';
@@ -745,10 +770,17 @@
     }
   });
 
-  // Sessiya brauzerda saqlanadi: bir marta kirasan, keyin har safar avtomatik ochiladi.
-  onAuthStateChanged(auth, user => {
-    if (user) unlockApp(); else showGate();
-  });
+  // Ochilganda: sessiya cookie bormi / IP bloklanganmi?
+  (async () => {
+    try {
+      const { data } = await api('/api/login');
+      if (data.authed) unlockApp();
+      else if (data.blocked) showBlocked();
+      else showGate();
+    } catch {
+      showGate("server bilan bog'lanib bo'lmadi", 'err');
+    }
+  })();
 </script>
 </body>
 </html>

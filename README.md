@@ -4,18 +4,21 @@ Shaxsiy check-in (kayfiyat/holat) logi. Brauzerdan yozasan, Claude orqali o'qila
 
 ## Xavfsizlik modeli (qisqa)
 
-Ma'lumotni **Firestore rules** himoya qiladi: faqat ruxsat ro'yxatidagi ikkita Firebase akkaunt (UID) o'qiy va yoza oladi.
-- **OWNER** = sening akkaunting (sayt, `/mcp` sahifasi).
-- **CLAUDE** = MCP server uchun alohida akkaunt (Vercel env'dagi email/parol bilan kiradi).
-- Anonim kirish, ochiq API orqali o'qish, parol hash'i Firestore'da: **hammasi yo'q**.
-- Claude'ning o'zi serverga `MCP_TOKEN` li URL orqali kiradi. URL'ni faqat sening parolingni bilgan odam `/mcp` sahifasidan oladi.
+Hamma narsa **serverdan** o'tadi: sayt ham, `/mcp` sahifasi ham, Claude ham.
+- **Login bitta:** sayt (`/`) va `/mcp` bir xil `authenticate()` dan o'tadi va IP hisobi butun domen uchun bitta (`ipguard`). Sahifaga bog'liq emas.
+- **IP bloklash:** 5 daqiqa ichida 3 ta noto'g'ri urinish = IP doimiy bloklanadi. Urinishlar orasi 5 daqiqadan oshsa, eskisi hisobdan chiqadi.
+- **Email** env'da (`OWNER_EMAIL`), solishtirish SHA-256 hash orqali. **Parol** scrypt hash (`OWNER_PASS_HASH`), parolning o'zi hech qayerda yo'q.
+- **Sessiya:** imzolangan httpOnly cookie (7 kun). Brauzerda localStorage/IndexedDB ishlatilmaydi.
+- **Firestore rules:** faqat Claude akkaunti (server shu bilan kiradi). Boshqa hech kim to'g'ridan-to'g'ri kira olmaydi.
+- Claude'ning o'zi serverga `MCP_TOKEN` li URL orqali kiradi.
 
 ## Fayllar
 
-- `index.html`: sayt. Email/parol bilan kirasan, real-vaqtda o'qiydi va yozadi. Odat qatlami (7 kunlik ritm, tez yozish, eslatma) ham shu yerda.
+- `index.html`: sayt. Server orqali kirasan (`/api/login`), yozuvlar har 10 soniyada yangilanadi. Odat qatlami (7 kunlik ritm, tez yozish, eslatma) ham shu yerda.
 - `api/mcp.js`: Claude uchun remote MCP server (`get_guide`, `get_latest`, `get_status`, `get_stats`, `add_status`).
 - `api/_guide.js`: Claude'ning asosiy qo'llanmasi (suhbat uslubi va qoidalar). **Qoidalarni o'zgartirish shu faylda.**
-- `api/mcp-link.js`: `/mcp` sahifasi uchun: parolni Firebase orqali serverda tekshirib, connector URL'ini qaytaradi.
+- `api/_lib.js`: umumiy qatlam (login, IP hisobi, sessiya). `api/login.js`, `api/logout.js`, `api/checkins.js`: sayt uchun. `api/mcp-link.js`: `/mcp` uchun (bir xil login).
+- `tools/hash-password.mjs`: parolingdan `OWNER_PASS_HASH` yaratadi (`node tools/hash-password.mjs`).
 - `firestore.rules`: Firestore qoidalari (UID ruxsat ro'yxati). Firebase Console'da alohida Publish qilinadi.
 - `mcp/index.html`: connector URL sahifasi (`/mcp`).
 - `instruction.md`: Claude Preferences'ga qo'yiladigan QISQA matn (har accountga bir marta).
@@ -40,9 +43,11 @@ Vercel → loyiha → Settings → Environment Variables:
 |---|---|---|
 | `FS_KEY` | Firebase Web API key (Project settings → Web app) | Firebase REST so'rovlari |
 | `MCP_TOKEN` | `openssl rand -hex 32` | Connector URL'dagi maxfiy kalit |
-| `OWNER_EMAIL` | sening Firebase emailing | `/mcp` sahifasi parolingni shu email bilan tekshiradi |
-| `CLAUDE_EMAIL` | Claude akkauntining emaili | MCP server Firestore'ga shu bilan kiradi |
-| `CLAUDE_PASSWORD` | Claude akkauntining paroli | **Sensitive** qilib qo'y |
+| `OWNER_EMAIL` | sening emailing | Faqat shu yerda turadi; solishtirish hash orqali |
+| `OWNER_PASS_HASH` | `node tools/hash-password.mjs` chiqargan qator | **Sensitive**. Parolning scrypt hash'i |
+| `SESSION_SECRET` | `openssl rand -hex 32` | **Sensitive**. Cookie imzosi. Almashtirsang barcha sessiyalar tugaydi |
+| `CLAUDE_EMAIL` | Claude akkauntining emaili | Server Firestore'ga shu bilan kiradi |
+| `CLAUDE_PASSWORD` | Claude akkauntining paroli | **Sensitive** |
 
 O'zgartirgach **Redeploy** qil. Env yangi deploy'siz o'qilmaydi.
 
@@ -52,12 +57,12 @@ Repo'ni GitHub'ga push qil: Vercel avtomatik deploy qiladi.
 
 - Brauzerda `https://<domen>/api/mcp?k=<MCP_TOKEN>` ochilsa `405` chiqishi kerak.
   - `401` = key xato, `404` = fayl deploy bo'lmagan, `500` = env yetishmayapti.
-- Sayt: `https://<domen>/` da OWNER email/parol bilan kir. Sessiya brauzerda saqlanadi.
-- Ruxsatsiz akkaunt kirsa "bu akkauntga ruxsat yo'q" chiqadi va chiqarib yuboriladi.
+- Sayt: `https://<domen>/` da email va parol bilan kir. Sessiya httpOnly cookie'da.
+- 5 daqiqa ichida 3 ta xato = IP bloklanadi. Ochish: Firebase Console → Firestore → `ipguard` → hujjatni o'chir.
 
 ## 4. Claude accountlarni ulash (har accountga bir marta)
 
-1. `https://<domen>/mcp` ni och, OWNER parolingni yoz. Connector URL yopiq (`••••`) ko'rinadi, **Nusxa olish** ni bos.
+1. `https://<domen>/mcp` ni och, email va parolingni yoz. Connector URL yopiq (`••••`) ko'rinadi, **Nusxa olish** ni bos.
 2. Claude → Settings → Connectors → Add custom connector. Name: `mrstatus`, URL: nusxa olingan manzil. OAuth maydonlarini bo'sh qoldir.
 3. `instruction.md` matnini shu accountning Preferences'iga qo'y va yangi chat och.
 
@@ -83,10 +88,9 @@ Claude'ning suhbat uslubi va barcha qoidalari `api/_guide.js` ichida.
 
 - `MCP_TOKEN`, `CLAUDE_PASSWORD`, `FS_KEY`ni kodga, chatga yoki skrinshotga hech qachon qo'yma. Faqat Vercel env'da tursin.
 - `index.html` ichidagi Firebase `apiKey` public web config kaliti, maxfiy emas: himoya rules orqali.
-- **Eng zaif halqa: OWNER paroli.** Firebase'ning ochiq login API'si orqali uni topishga urinish mumkin (Firebase o'zi tezlikni cheklaydi). Shuning uchun uzun passphrase (16+ belgi), boshqa joyda ishlatilmagan parol qo'y.
+- **Eng zaif halqa: parolingning uzunligi.** Uzun passphrase (16+ belgi), boshqa joyda ishlatilmagan. Parolni almashtirish: `node tools/hash-password.mjs`, yangi hash'ni `OWNER_PASS_HASH`ga qo'y, Redeploy.
 - Claude akkaunti buzilsa: Firebase → Users'da uni o'chir yoki parolini almashtir, Vercel'da `CLAUDE_PASSWORD`ni yangila, Redeploy. Saytga ta'sir qilmaydi.
 - `MCP_TOKEN` sizib chiqsa: yangisini yarat, Vercel'da almashtir, Redeploy, `/mcp`dan yangi URL olib accountlarga qo'y.
-- Yangi odamga ruxsat berish: Users'da akkaunt yarat, UID'ni `firestore.rules` ruxsat ro'yxatiga qo'sh, Publish. Olib tashlash: ro'yxatdan o'chirib Publish.
 
 ## Troubleshooting
 
@@ -97,6 +101,7 @@ Claude'ning suhbat uslubi va barcha qoidalari `api/_guide.js` ichida.
 | `CLAUDE_EMAIL yoki CLAUDE_PASSWORD sozlanmagan` | Vercel env'ga qo'sh, Redeploy qil |
 | Claude'da `Firebase login xatosi` | `CLAUDE_EMAIL`/`CLAUDE_PASSWORD` Firebase'dagi akkaunt bilan mos emas yoki Email/Password yoqilmagan |
 | Claude'da `Firestore ruxsat bermadi` | `firestore.rules`dagi `CLAUDE_UID` noto'g'ri yoki rules Publish qilinmagan |
-| Sayt: "bu akkauntga ruxsat yo'q" | Akkaunt UID'si `OWNER_UID`ga mos emas yoki rules Publish qilinmagan |
+| Saytda "server xatosi: ... sozlanmagan" | Shu env'ni Vercel'ga qo'sh, Redeploy qil |
+| Doim "email yoki parol noto'g'ri" | `OWNER_EMAIL` yoki `OWNER_PASS_HASH` mos emas (hash'ni aynan shu parol bilan qayta yarat) |
 | Sayt: "email yoki parol noto'g'ri" | Firebase → Users'dagi email/parolni tekshir; Email/Password yoqilganmi? |
 | `/mcp`da "noto'g'ri parol" | Parol OWNER akkauntining Firebase paroli bo'lishi kerak va `OWNER_EMAIL` env shu emailga teng bo'lishi kerak |
