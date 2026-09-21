@@ -4,11 +4,14 @@
 // Claude.ai -> Settings -> Connectors -> Add custom connector:
 //   https://<domen>/api/mcp?k=<MCP_TOKEN>
 //
-// Auth: ?k= parametri Vercel env MCP_TOKEN bilan solishtiriladi (majburiy).
+// Claude -> server: ?k= parametri Vercel env MCP_TOKEN bilan solishtiriladi (majburiy).
+// Server -> Firestore: alohida Firebase akkaunt (email/parol) bilan kiradi, rules faqat shu UID'ga ruxsat beradi.
 //
 // Env (Vercel -> Settings -> Environment Variables):
-//   FS_KEY    = Firebase Web API key
-//   MCP_TOKEN = tasodifiy uzun qiymat (openssl rand -hex 32)
+//   FS_KEY          = Firebase Web API key
+//   MCP_TOKEN       = tasodifiy uzun qiymat (openssl rand -hex 32)
+//   CLAUDE_EMAIL    = Claude uchun Firebase akkaunt emaili
+//   CLAUDE_PASSWORD = shu akkauntning paroli (Sensitive)
 //
 // Tool'lar:
 //   get_guide  -> foydalanuvchining shaxsiy qo'llanmasi (api/_guide.js), suhbat uslubi qoidalari
@@ -31,8 +34,8 @@ const FIREBASE_PROJECT_ID = "mrabout";
 const FIREBASE_API_KEY = process.env.FS_KEY;
 const BASE_DOCS_URL =
   `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
-const IDENTITY_TOOLKIT_URL =
-  `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`;
+const SIGNIN_URL =
+  `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`;
 
 const TZ = "Asia/Tashkent";
 const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
@@ -285,26 +288,63 @@ function describeFilters(f) {
 // 4. FIRESTORE QATLAMI (o'qish / yozish)
 // ============================================================================
 
+// Claude akkaunti bilan kirish. Token xotirada saqlanadi (~1 soat), har chaqiriqda qayta kirilmaydi.
+const tokenCache = { token: null, exp: 0, pending: null };
+
+async function getIdToken() {
+  if (tokenCache.token && Date.now() < tokenCache.exp) return tokenCache.token;
+  if (tokenCache.pending) return tokenCache.pending;
+
+  tokenCache.pending = (async () => {
+    const r = await fetch(SIGNIN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: process.env.CLAUDE_EMAIL,
+        password: process.env.CLAUDE_PASSWORD,
+        returnSecureToken: true,
+      }),
+    });
+    if (!r.ok) throw new Error(`Firebase login xatosi: HTTP ${r.status} (CLAUDE_EMAIL/CLAUDE_PASSWORD ni tekshir)`);
+    const d = await r.json();
+    if (!d.idToken) throw new Error("Firebase login: idToken qaytmadi");
+    tokenCache.token = d.idToken;
+    tokenCache.exp = Date.now() + Math.max(60, Number(d.expiresIn || 3600) - 120) * 1000;
+    return d.idToken;
+  })();
+
+  try {
+    return await tokenCache.pending;
+  } finally {
+    tokenCache.pending = null;
+  }
+}
+
+// Firestore'ga har doim Bearer token bilan boradi. 401/403 bo'lsa bir marta qayta kirib urinadi.
+async function authFetch(url, opts = {}, retried = false) {
+  const idToken = await getIdToken();
+  const r = await fetch(url, {
+    ...opts,
+    headers: { ...(opts.headers || {}), Authorization: `Bearer ${idToken}` },
+  });
+  if ((r.status === 401 || r.status === 403) && !retried) {
+    tokenCache.token = null;
+    tokenCache.exp = 0;
+    return authFetch(url, opts, true);
+  }
+  return r;
+}
+
 async function firestoreListPage(pageSize, pageToken) {
   let url =
     `${BASE_DOCS_URL}/checkins?key=${FIREBASE_API_KEY}` +
     `&orderBy=timestamp%20desc&pageSize=${pageSize}`;
   if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
 
-  const r = await fetch(url, { cache: "no-store" });
+  const r = await authFetch(url, { cache: "no-store" });
+  if (r.status === 403) throw new Error("Firestore ruxsat bermadi (rules'dagi CLAUDE_UID to'g'rimi?)");
   if (!r.ok) throw new Error(`Firestore xatosi: HTTP ${r.status}`);
   return r.json();
-}
-
-// config/access hujjatidan parol hash'ini o'qiydi (frontend bilan bir xil manba).
-// Rules: allow read: if true — token shart emas.
-export async function fetchConfigHash() {
-  const url = `${BASE_DOCS_URL}/config/access?key=${FIREBASE_API_KEY}`;
-  const r = await fetch(url, { cache: "no-store" });
-  if (r.status === 404) return null;
-  if (!r.ok) throw new Error(`Config o'qishda xato: HTTP ${r.status}`);
-  const data = await r.json();
-  return data.fields?.hash?.stringValue || null;
 }
 
 function docToEntry(doc) {
@@ -373,30 +413,11 @@ function arrange(groups, order) {
   return Object.fromEntries(entries);
 }
 
-// Yozish uchun Firestore rules `request.auth != null` talab qiladi, shuning
-// uchun har chaqiriqda Identity Toolkit orqali bir martalik anonim token
-// olinadi (CLI skript ham xuddi shunday ishlaydi).
-async function anonIdToken() {
-  const r = await fetch(IDENTITY_TOOLKIT_URL, {
+async function createCheckin(holat) {
+  const vaqt = nowTashkentCompact();
+  const r = await authFetch(`${BASE_DOCS_URL}/checkins`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ returnSecureToken: true }),
-  });
-  if (!r.ok) throw new Error(`Anonim login xatosi: HTTP ${r.status}`);
-  const data = await r.json();
-  if (!data.idToken) throw new Error("Anonim login: idToken qaytmadi");
-  return data.idToken;
-}
-
-async function createCheckin(holat) {
-  const idToken = await anonIdToken();
-  const vaqt = nowTashkentCompact();
-  const r = await fetch(`${BASE_DOCS_URL}/checkins`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${idToken}`,
-    },
     body: JSON.stringify({
       fields: {
         vaqt: { stringValue: vaqt },
@@ -405,6 +426,7 @@ async function createCheckin(holat) {
       },
     }),
   });
+  if (r.status === 403) throw new Error("Yozishga ruxsat yo'q (rules'dagi CLAUDE_UID to'g'rimi?)");
   if (!r.ok) {
     const t = await r.text().catch(() => "");
     throw new Error(`Yozib bo'lmadi: HTTP ${r.status} ${t.slice(0, 200)}`);
@@ -643,8 +665,7 @@ export default async function handler(req, res) {
   }
 
   // ?k= faqat Vercel env MCP_TOKEN bilan solishtiriladi. Token paroldan mustaqil va maxfiy.
-  // (Eski rejim k = config/access.hash edi, lekin hash Firestore'da hamma o'qiy oladigan joyda
-  // turgani uchun u aslida himoyasiz edi, shuning uchun olib tashlandi.)
+  // (Eski hash rejimi olib tashlandi: u himoyasiz edi.)
   const envToken = process.env.MCP_TOKEN;
   if (!envToken) return send(res, 500, { error: "MCP_TOKEN sozlanmagan" });
 
@@ -655,6 +676,10 @@ export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return send(res, 405, { error: "Faqat POST (SSE stream yo'q)" });
+  }
+
+  if (!process.env.CLAUDE_EMAIL || !process.env.CLAUDE_PASSWORD) {
+    return send(res, 500, { error: "CLAUDE_EMAIL yoki CLAUDE_PASSWORD sozlanmagan" });
   }
 
   let body;

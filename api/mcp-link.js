@@ -1,18 +1,17 @@
 // api/mcp-link.js
 //
-// /mcp sahifasi uchun: parolni SERVER tomonda tekshiradi va to'g'ri bo'lsa connector URL'ini qaytaradi.
-//   POST /api/mcp-link   body: { "password": "..." }   ->   { url, mode }
+// /mcp sahifasi uchun: parolni Firebase Auth orqali SERVER tomonda tekshiradi va to'g'ri bo'lsa
+// connector URL'ini qaytaradi.
+//   POST /api/mcp-link   body: { "password": "..." }   ->   { url }
 //
-// URL'dagi k = Vercel env MCP_TOKEN (majburiy: maxfiy, parolga bog'liq emas)
+// Parol = OWNER_EMAIL akkauntining Firebase paroli (sening saytga kirish parolingning o'zi).
+// URL'dagi k = Vercel env MCP_TOKEN. Token brauzerga faqat parol to'g'ri bo'lgandan keyin yuboriladi.
 //
-// Maxfiy qiymat (token) brauzerga faqat parol to'g'ri kiritilgach yuboriladi.
-
-import crypto from "crypto";
-import { fetchConfigHash, safeEqual } from "./mcp.js";
+// Env: FS_KEY, MCP_TOKEN, OWNER_EMAIL
 
 const MAX_FAILS = 5;
 const LOCKOUT_MS = 60_000;
-const attempts = new Map(); // ip -> { fails, until }  (serverless: deploy/instance'da reset bo'ladi)
+const attempts = new Map(); // ip -> { fails, until }  (serverless: instance'da reset bo'ladi, Firebase'ning o'z limiti ham bor)
 
 function send(res, status, obj) {
   res.statusCode = status;
@@ -44,6 +43,7 @@ export default async function handler(req, res) {
   }
   if (!process.env.FS_KEY) return send(res, 500, { error: "FS_KEY sozlanmagan" });
   if (!process.env.MCP_TOKEN) return send(res, 500, { error: "MCP_TOKEN sozlanmagan" });
+  if (!process.env.OWNER_EMAIL) return send(res, 500, { error: "OWNER_EMAIL sozlanmagan" });
 
   const ip = clientIp(req);
   const rec = attempts.get(ip) || { fails: 0, until: 0 };
@@ -61,16 +61,27 @@ export default async function handler(req, res) {
   }
   if (!password) return send(res, 400, { error: "parol kerak" });
 
-  let configHash;
+  let r;
   try {
-    configHash = await fetchConfigHash();
-  } catch (e) {
-    return send(res, 500, { error: `Config xatosi: ${e.message}` });
+    r = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FS_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: process.env.OWNER_EMAIL, password, returnSecureToken: false }),
+      }
+    );
+  } catch {
+    return send(res, 502, { error: "Firebase bilan bog'lanib bo'lmadi" });
   }
-  if (!configHash) return send(res, 500, { error: "parol_ornatilmagan" });
 
-  const candidate = crypto.createHash("sha256").update(password).digest("hex");
-  if (!safeEqual(candidate, configHash)) {
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    const msg = String(e?.error?.message || "");
+    if (msg.startsWith("TOO_MANY_ATTEMPTS")) {
+      return send(res, 429, { error: "juda_kop_urinish", retry_after_sec: 60 });
+    }
+    if (r.status >= 500) return send(res, 502, { error: "Firebase xatosi" });
     rec.fails += 1;
     if (rec.fails >= MAX_FAILS) { rec.fails = 0; rec.until = Date.now() + LOCKOUT_MS; }
     attempts.set(ip, rec);
@@ -78,9 +89,7 @@ export default async function handler(req, res) {
   }
   attempts.delete(ip);
 
-  const token = process.env.MCP_TOKEN;
   const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
   const host = req.headers["x-forwarded-host"] || req.headers.host;
-  const url = `${proto}://${host}/api/mcp?k=${token}`;
-  return send(res, 200, { url, mode: "token" });
+  return send(res, 200, { url: `${proto}://${host}/api/mcp?k=${process.env.MCP_TOKEN}` });
 }

@@ -3,47 +3,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ---- Ruxsat ro'yxati (allowlist) ----
+    // Faqat shu ikkita Firebase Auth akkaunt kira oladi:
+    //   OWNER_UID  = sening akkaunting (sayt)
+    //   CLAUDE_UID = Claude'ning MCP akkaunti (Vercel'dagi server shu bilan kiradi)
+    // UID'ni Firebase Console -> Authentication -> Users -> "User UID" ustunidan nusxala.
+    // Placeholder almashtirilmasa hech kim kira olmaydi (yopiq holat).
+    // Boshqa odam qo'shish yoki olib tashlash = ro'yxatni o'zgartirib qayta Publish qilish.
+    function isAllowed() {
+      return request.auth != null
+          && request.auth.uid in ['OWNER_UID', 'CLAUDE_UID'];
+    }
+
+    function isValidCheckin(data) {
+      return data.keys().hasOnly(['vaqt', 'holat', 'timestamp'])
+          && data.vaqt is string
+          && data.vaqt.size() > 0
+          && data.vaqt.size() < 30
+          && data.holat is string
+          && data.holat.size() > 0
+          && data.holat.size() < 500
+          && data.timestamp is timestamp;
+    }
+
     match /checkins/{docId} {
-
-      // O'QISH — hozircha ochiq, chunki MRstatus sahifasi
-      // auth'siz real-time o'qiydi. Agar buni ham cheklamoqchi bo'lsang,
-      // pastdagi "faqat auth" variantiga o'tkaz (izohda bor).
-      allow read: if true;
-
-      // YOZISH — faqat auth qilingan (anonim bo'lsa ham) foydalanuvchi,
-      // va faqat quyidagi qat'iy validatsiyadan o'tgan hujjat.
-      allow create: if request.auth != null
-                    && isValidCheckin(request.resource.data);
-
-      // Hech kim eski yozuvni o'zgartira olmaydi yoki o'chira olmaydi —
-      // check-in log immutable bo'lishi kerak (audit trail mantiqi).
+      allow read: if isAllowed();
+      allow create: if isAllowed() && isValidCheckin(request.resource.data);
+      // Log immutable: eski yozuvni hech kim o'zgartira yoki o'chira olmaydi.
       allow update, delete: if false;
     }
 
-    // Parol hash'i shu yerda saqlanadi. O'QISH ochiq (frontend gate shuni talab qiladi),
-    // lekin YOZISH yopiq: hash faqat Firebase Console'dan o'zgaradi (Console rules'ni chetlab o'tadi).
-    // Avval bu yerda `request.auth != null` yetarli edi, ya'ni istalgan anonim foydalanuvchi
-    // parol hash'ini o'z parolining hash'iga almashtira olardi.
-    match /config/access {
-      allow read: if true;
-      allow write: if false;
-    }
-
-    // Boshqa har qanday collection — default deny.
-    // Kimdir boshqa nom bilan collection yaratib chiqindi tashlay olmasin.
+    // Qolgan hamma narsa yopiq (config/access ham: parol hash'i endi Firestore'da yo'q).
     match /{document=**} {
       allow read, write: if false;
     }
   }
-}
-
-function isValidCheckin(data) {
-  return data.keys().hasOnly(['vaqt', 'holat', 'timestamp'])
-    && data.vaqt is string
-    && data.vaqt.size() > 0
-    && data.vaqt.size() < 30
-    && data.holat is string
-    && data.holat.size() > 0
-    && data.holat.size() < 500
-    && data.timestamp is timestamp;
 }

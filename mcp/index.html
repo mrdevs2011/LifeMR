@@ -219,8 +219,6 @@
         setState("noto'g'ri parol", 'err');
       } else if (r.status === 429) {
         setState(`juda ko'p urinish. ${data.retry_after_sec || 60} soniya kuting`, 'err');
-      } else if (data.error === 'parol_ornatilmagan') {
-        setState("parol o'rnatilmagan. Firestore'da config/access hujjatiga hash qo'sh", 'err');
       } else {
         setState(`xato: ${data.error || r.status}`, 'err');
       }

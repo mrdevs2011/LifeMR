@@ -136,7 +136,7 @@
     margin-bottom: 6px;
   }
 
-  input[type="text"] {
+  .inp {
     flex: 1;
     min-width: 0;
     background: var(--bg);
@@ -149,9 +149,9 @@
     outline: none;
     transition: border-color .15s ease;
   }
-  input[type="text"]::placeholder { color: var(--text-faint); }
-  input[type="text"]:hover { border-color: var(--text-faint); }
-  input[type="text"]:focus { border-color: var(--accent); }
+  .inp::placeholder { color: var(--text-faint); }
+  .inp:hover { border-color: var(--text-faint); }
+  .inp:focus { border-color: var(--accent); }
 
   button {
     background: var(--accent);
@@ -169,6 +169,13 @@
   button:hover { opacity: .88; }
   button:active { transform: scale(.97); }
   button:disabled { opacity: .4; cursor: default; transform: none; }
+
+  #loginForm { flex-direction: column; margin: 0; }
+  .linkbtn {
+    background: none; border: none; padding: 0; color: var(--text-dim);
+    font-size: inherit; font-weight: 500; text-decoration: underline; cursor: pointer;
+  }
+  .linkbtn:hover { color: var(--text); opacity: 1; }
 
   #gate button, #gate input { width: 100%; }
   #gate button {
@@ -333,8 +340,11 @@
 
     <div id="gate">
       <div class="state" id="gateState">tekshirilmoqda...</div>
-      <input type="password" id="passInput" placeholder="parol" autocomplete="off" style="display:none">
-      <button id="passBtn" style="display:none">kir</button>
+      <form id="loginForm" style="display:none" autocomplete="on">
+        <input type="email" class="inp" id="emailInput" placeholder="email" autocomplete="username" required>
+        <input type="password" class="inp" id="passInput" placeholder="parol" autocomplete="current-password" required>
+        <button type="submit" id="passBtn">kir</button>
+      </form>
     </div>
 
     <div id="content">
@@ -345,7 +355,7 @@
       <div class="nudge" id="nudge" hidden></div>
 
       <form id="statusForm">
-        <input type="text" id="holatInput" placeholder="holatingni yoz..." autocomplete="off" maxlength="490" required>
+        <input type="text" class="inp" id="holatInput" placeholder="holatingni yoz..." autocomplete="off" maxlength="490" required>
         <button type="submit" id="submitBtn">yubor</button>
       </form>
       <div class="chips" id="phraseChips">
@@ -369,7 +379,7 @@
       <div id="log">
         <div class="state">yuklanmoqda...</div>
       </div>
-      <div class="state hint">kun ustiga bosilsa, o'sha kun statuslari ochiladi</div>
+      <div class="state hint">kun ustiga bosilsa, o'sha kun statuslari ochiladi · <button type="button" id="logoutBtn" class="linkbtn">chiqish</button></div>
     </div>
   </div>
 </div>
@@ -379,10 +389,10 @@
   import { getAnalytics, isSupported as analyticsSupported } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
   import {
     getFirestore, collection, addDoc, serverTimestamp,
-    query, orderBy, limit, onSnapshot, doc, getDoc
+    query, orderBy, limit, onSnapshot
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import {
-    getAuth, signInAnonymously, onAuthStateChanged
+    getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
   // Your web app's Firebase configuration
@@ -414,11 +424,9 @@
   const gateStateEl = document.getElementById('gateState');
   const passInputEl = document.getElementById('passInput');
   const passBtnEl = document.getElementById('passBtn');
-
-  async function sha256Hex(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
+  const emailInputEl = document.getElementById('emailInput');
+  const loginFormEl = document.getElementById('loginForm');
+  const logoutBtnEl = document.getElementById('logoutBtn');
 
   function esc(s) {
     const d = document.createElement('div');
@@ -637,122 +645,112 @@
     openSana = sana;
   });
 
+  // ---- AUTH OQIMI ----
+  // Ma'lumotni himoya qiladigan narsa Firestore rules (faqat ruxsat ro'yxatidagi UID'lar).
+  // Bu yerdagi login shunchaki o'sha akkauntga kirish: anonim kirish va client-side parol gate yo'q.
+  let unsubscribe = null;
+  let unlocked = false;
+
+  function showGate(msg = 'kirish', kind = '') {
+    unlocked = false;
+    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    contentEl.style.display = 'none';
+    gateEl.style.display = 'flex';
+    loginFormEl.style.display = 'flex';
+    gateStateEl.textContent = msg;
+    gateStateEl.className = 'state' + (kind ? ' ' + kind : '');
+    logEl.innerHTML = '';
+    prevTodayHas = null;
+    (emailInputEl.value ? passInputEl : emailInputEl).focus();
+  }
+
   function unlockApp() {
+    if (unlocked) return;
+    unlocked = true;
     gateEl.style.display = 'none';
     contentEl.style.display = 'block';
 
-    // Real-vaqtda tinglash — yangi yozuv kelsa avtomatik yangilanadi
+    // Real-vaqtda tinglash: yangi yozuv kelsa avtomatik yangilanadi
     const q = query(collection(db, "checkins"), orderBy("timestamp", "desc"), limit(300));
-    onSnapshot(q, snap => {
+    unsubscribe = onSnapshot(q, snap => {
       render(snap.docs);
     }, err => {
+      if (err.code === 'permission-denied') {
+        // Akkaunt rules'dagi ruxsat ro'yxatida yo'q
+        signOut(auth).finally(() => showGate("bu akkauntga ruxsat yo'q", 'err'));
+        return;
+      }
       logEl.innerHTML = `<div class="state err">xato: ma'lumot yuklanmadi (${esc(err.message)})</div>`;
     });
-
-    formEl.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      let holat = inputEl.value.trim();
-      if (!holat) return;
-      if (energy && !/\s:[1-5]$/.test(holat)) holat += ` :${energy}`;
-
-      const now = new Date();
-      const pad = n => String(n).padStart(2, '0');
-      const vaqt = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
-
-      btnEl.disabled = true;
-      formStateEl.textContent = '';
-      formStateEl.className = 'state';
-
-      try {
-        await addDoc(collection(db, "checkins"), {
-          vaqt,
-          holat,
-          timestamp: serverTimestamp(),
-        });
-        inputEl.value = '';
-        resetEnergy();
-        formStateEl.textContent = 'yuborildi ✓';
-        formStateEl.className = 'state ok';
-        setTimeout(() => { formStateEl.textContent = ''; }, 2000);
-      } catch (err) {
-        formStateEl.textContent = `xato: ${err.message}`;
-        formStateEl.className = 'state err';
-      } finally {
-        btnEl.disabled = false;
-        inputEl.focus();
-      }
-    });
   }
 
-  async function checkPassword(candidate, correctHash) {
-    const h = await sha256Hex(candidate);
-    return h === correctHash;
-  }
+  loginFormEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = emailInputEl.value.trim();
+    const pass = passInputEl.value;
+    if (!email || !pass) return;
 
-  async function runGate() {
-    // 1) auth kerak — yozish (checkins) anonim token talab qiladi
-    await new Promise(resolve => {
-      const unsub = onAuthStateChanged(auth, user => {
-        if (user) { unsub(); resolve(); }
-      });
-    });
-
-    // 2) sessiyada allaqachon ochilganmi tekshir (shu tab uchun, reload'da qayta so'ramasin)
-    const sessionUnlocked = sessionStorage.getItem('mrstatus_unlocked') === '1';
-
-    let correctHash = null;
+    passBtnEl.disabled = true;
+    gateStateEl.textContent = 'tekshirilmoqda...';
+    gateStateEl.className = 'state';
     try {
-      const snap = await getDoc(doc(db, "config", "access"));
-      if (snap.exists()) correctHash = snap.data().hash || null;
+      await signInWithEmailAndPassword(auth, email, pass);
+      passInputEl.value = '';
+      // keyingi qadamni onAuthStateChanged bajaradi
     } catch (err) {
-      gateStateEl.textContent = `config o'qishda xato: ${err.message}`;
+      passInputEl.value = '';
+      const msg = err.code === 'auth/too-many-requests'
+        ? "juda ko'p urinish, birozdan keyin qayta urin"
+        : "email yoki parol noto'g'ri";
+      gateStateEl.textContent = msg;
       gateStateEl.className = 'state err';
-      return;
+    } finally {
+      passBtnEl.disabled = false;
     }
-
-    // Parol hali o'rnatilmagan bo'lsa — himoyasiz, to'g'ridan-to'g'ri kiritamiz
-    if (!correctHash) {
-      unlockApp();
-      return;
-    }
-
-    if (sessionUnlocked) {
-      unlockApp();
-      return;
-    }
-
-    // 3) qo'lda kiritish formasini ko'rsat
-    gateStateEl.textContent = 'parolni kiriting';
-    passInputEl.style.display = 'block';
-    passBtnEl.style.display = 'block';
-    passInputEl.focus();
-
-    async function trySubmit() {
-      const val = passInputEl.value;
-      if (!val) return;
-      const ok = await checkPassword(val, correctHash);
-      if (ok) {
-        sessionStorage.setItem('mrstatus_unlocked', '1');
-        unlockApp();
-      } else {
-        gateStateEl.textContent = "noto'g'ri parol";
-        gateStateEl.className = 'state err';
-        passInputEl.value = '';
-      }
-    }
-    passBtnEl.addEventListener('click', trySubmit);
-    passInputEl.addEventListener('keydown', e => { if (e.key === 'Enter') trySubmit(); });
-  }
-
-  // Firestore Rules "request.auth != null" talab qiladi — shuning uchun
-  // sahifa ochilishi bilan anonim token olamiz. Bu Firebase Console'da
-  // Authentication → Sign-in method → Anonymous YOQILGAN bo'lishini talab qiladi.
-  signInAnonymously(auth).catch(err => {
-    gateStateEl.textContent = `auth xato: ${err.message}`;
-    gateStateEl.className = 'state err';
   });
 
-  runGate();
+  logoutBtnEl.addEventListener('click', () => { signOut(auth); });
+
+  // Yangi yozuv (forma bir marta ulanadi)
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!auth.currentUser) return;
+    let holat = inputEl.value.trim();
+    if (!holat) return;
+    if (energy && !/\s:[1-5]$/.test(holat)) holat += ` :${energy}`;
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const vaqt = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    btnEl.disabled = true;
+    formStateEl.textContent = '';
+    formStateEl.className = 'state';
+
+    try {
+      await addDoc(collection(db, "checkins"), {
+        vaqt,
+        holat,
+        timestamp: serverTimestamp(),
+      });
+      inputEl.value = '';
+      resetEnergy();
+      formStateEl.textContent = 'yuborildi ✓';
+      formStateEl.className = 'state ok';
+      setTimeout(() => { formStateEl.textContent = ''; }, 2000);
+    } catch (err) {
+      formStateEl.textContent = `xato: ${err.message}`;
+      formStateEl.className = 'state err';
+    } finally {
+      btnEl.disabled = false;
+      inputEl.focus();
+    }
+  });
+
+  // Sessiya brauzerda saqlanadi: bir marta kirasan, keyin har safar avtomatik ochiladi.
+  onAuthStateChanged(auth, user => {
+    if (user) unlockApp(); else showGate();
+  });
 </script>
 </body>
 </html>
