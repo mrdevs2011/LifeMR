@@ -27,8 +27,8 @@
     --accent-dim: rgba(127, 224, 160, .1);
     --red: #f2726f;
     --red-dim: rgba(242, 114, 111, .1);
-    --radius: 14px;
-    --radius-sm: 8px;
+    --radius: 6px;
+    --radius-sm: 4px;
     --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   }
 
@@ -37,7 +37,7 @@
   html {
     /* fluid type scale — ekran kengligiga qarab silliq o'sadi/kichrayadi,
        qat'iy breakpoint'larga tayanmasdan har qanday device'da tekis ko'rinadi */
-    font-size: clamp(14px, 3.6vw, 16px);
+    font-size: clamp(12.5px, 3vw, 13.5px);
   }
 
   html, body {
@@ -66,49 +66,52 @@
   }
 
   .page {
-    max-width: 680px;
+    max-width: 560px;
     margin: 0 auto;
-    padding: clamp(20px, 6vw, 56px) clamp(14px, 4vw, 20px) clamp(40px, 8vw, 72px);
+    padding: clamp(10px, 3vw, 28px) clamp(8px, 3vw, 14px) clamp(20px, 4vw, 36px);
   }
 
   .card {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .6);
-    padding: clamp(16px, 4vw, 26px);
+    box-shadow: 0 14px 34px -20px rgba(0, 0, 0, .6);
+    padding: 0;
     overflow: hidden;
+  }
+
+  .card-body {
+    padding: 10px 14px 14px;
   }
 
   .topbar {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: clamp(18px, 4vw, 26px);
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-soft);
+    background: rgba(255, 255, 255, .012);
   }
 
-  .badge {
-    display: block;
-    width: 30px;
-    height: 30px;
-    flex-shrink: 0;
-    border-radius: 8px;
-  }
+
+  .badge { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; display: block; }
 
   h1 {
     display: flex;
     align-items: baseline;
-    gap: 10px;
-    font-size: 1.0625rem;
-    font-weight: 700;
-    color: var(--text);
-    margin: 0;
-    letter-spacing: .01em;
+    gap: 6px;
+    font-size: .78rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    margin: 0 auto 0 4px;
+    letter-spacing: 0;
   }
+  h1 b { color: var(--text); font-weight: 600; }
+  h1 .path { color: var(--text-faint); }
 
   .live-dot {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     background: var(--accent);
     box-shadow: 0 0 0 0 var(--accent-dim);
@@ -124,8 +127,8 @@
 
   form {
     display: flex;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: 6px;
+    margin-bottom: 5px;
   }
 
   .inp {
@@ -135,8 +138,8 @@
     border: 1px solid var(--border);
     color: var(--text);
     font-family: inherit;
-    font-size: .9rem;
-    padding: 11px 13px;
+    font-size: .8rem;
+    padding: 7px 9px;
     border-radius: var(--radius-sm);
     outline: none;
     transition: border-color .15s ease;
@@ -146,19 +149,19 @@
   .inp:focus { border-color: var(--accent); }
 
   button {
-    background: var(--accent);
+    background: var(--accent-dim);
     border: 1px solid var(--accent);
-    color: #08130c;
+    color: var(--accent);
     font-family: inherit;
-    font-size: .9rem;
-    font-weight: 700;
-    padding: 11px 18px;
+    font-size: .78rem;
+    font-weight: 600;
+    padding: 7px 12px;
     border-radius: var(--radius-sm);
     cursor: pointer;
     flex-shrink: 0;
-    transition: opacity .15s ease, transform .08s ease;
+    transition: background-color .15s ease, transform .08s ease;
   }
-  button:hover { opacity: .88; }
+  button:hover { background: var(--accent); color: #08130c; }
   button:active { transform: scale(.97); }
   button:disabled { opacity: .4; cursor: default; transform: none; }
 
@@ -180,17 +183,17 @@
   .divider {
     height: 1px;
     background: var(--border-soft);
-    margin: 18px 0 4px;
+    margin: 10px 0 2px;
   }
 
-  .day { border-bottom: 1px solid var(--border-soft); }
+  .day { border-bottom: 1px solid var(--border-soft); font-size: .8rem; }
   .day:last-child { border-bottom: none; }
 
   .day-row {
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 13px 4px;
+    gap: 8px;
+    padding: 6px 4px;
     margin: 0 -4px;
     border-radius: var(--radius-sm);
     cursor: pointer;
@@ -202,22 +205,22 @@
 
   .day-date {
     color: var(--text);
-    font-size: .9rem;
-    font-weight: 700;
-    letter-spacing: .01em;
+    font-size: .8rem;
+    font-weight: 600;
+    letter-spacing: 0;
     white-space: nowrap;
   }
   .day.open .day-date { color: var(--accent); }
 
   .day-count {
-    color: var(--text-dim);
-    font-size: .8rem;
+    color: var(--text-faint);
+    font-size: .72rem;
     flex: 1;
   }
 
   .day-arrow {
     color: var(--text-faint);
-    font-size: .85rem;
+    font-size: .78rem;
     transition: transform .25s ease, color .15s ease;
     flex-shrink: 0;
   }
@@ -227,26 +230,26 @@
     max-height: 0;
     overflow: hidden;
     opacity: 0;
-    padding-bottom: 6px;
+    padding-bottom: 4px;
     transition: max-height .32s cubic-bezier(.4, 0, .2, 1), opacity .28s ease;
   }
   .day.open .day-entries { opacity: 1; }
 
   .entry {
     display: flex;
-    gap: 14px;
-    padding: 9px 0 9px 14px;
+    gap: 10px;
+    padding: 4px 0 4px 10px;
     border-left: 2px solid var(--border);
     margin-left: 3px;
-    font-size: .875rem;
-    line-height: 1.5;
+    font-size: .78rem;
+    line-height: 1.4;
   }
 
   .ts {
     color: var(--text-faint);
     white-space: nowrap;
     flex-shrink: 0;
-    width: 48px;
+    width: 40px;
     font-variant-numeric: tabular-nums;
   }
 
@@ -258,20 +261,20 @@
 
   .state {
     color: var(--text-dim);
-    font-size: .82rem;
-    padding: 8px 4px;
+    font-size: .75rem;
+    padding: 5px 4px;
   }
   .state.err { color: var(--red); }
   .state.ok { color: var(--accent); }
-  .hint { font-size: .75rem; color: var(--text-faint); padding-top: 12px; }
+  .hint { font-size: .68rem; color: var(--text-faint); padding-top: 8px; }
 
 
   /* ---- odat qatlami: kunlik ritm, eslatma, tez yozish ---- */
-  .week { margin: 0 0 16px; }
-  .week-dots { display: flex; gap: 8px; }
-  .wd { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; min-width: 0; }
+  .week { margin: 0 0 10px; }
+  .week-dots { display: flex; gap: 5px; }
+  .wd { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 0; }
   .wd i {
-    width: 100%; max-width: 34px; height: 10px; border-radius: 5px;
+    width: 100%; max-width: 34px; height: 6px; border-radius: 3px;
     background: var(--border-soft); border: 1px solid var(--border);
     transition: background-color .25s ease, border-color .25s ease;
   }
@@ -279,37 +282,75 @@
   .wd.today i { border-color: var(--text-dim); }
   .wd.today.on i { border-color: var(--accent); }
   .wd.pop i { animation: pop .5s ease-out; }
-  .wd span { font-size: .65rem; color: var(--text-faint); }
+  .wd span { font-size: .6rem; color: var(--text-faint); }
   .wd.today span { color: var(--text-dim); }
   @keyframes pop { 0% { transform: scaleY(1); } 40% { transform: scaleY(1.9); } 100% { transform: scaleY(1); } }
-  .week-note { margin-top: 10px; font-size: .78rem; color: var(--text-dim); min-height: 1.2em; }
+  .week-note { margin-top: 5px; font-size: .7rem; color: var(--text-dim); min-height: 1.2em; }
 
   .nudge {
-    margin: 0 0 12px; padding: 9px 12px; font-size: .82rem; color: var(--accent);
+    margin: 0 0 8px; padding: 6px 9px; font-size: .74rem; color: var(--accent);
     background: var(--accent-dim); border: 1px solid rgba(127, 224, 160, .25); border-radius: var(--radius-sm);
   }
 
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0 0; }
   .chip {
     background: transparent; color: var(--text-dim); border: 1px solid var(--border);
-    font-size: .78rem; font-weight: 500; padding: 6px 10px; border-radius: 999px;
+    font-size: .68rem; font-weight: 500; padding: 3px 7px; border-radius: var(--radius-sm);
   }
   .chip:hover { border-color: var(--text-faint); color: var(--text); opacity: 1; }
   .chip.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
   .chips.energy { align-items: center; }
-  .chips.energy .lbl { font-size: .75rem; color: var(--text-faint); margin-right: 2px; }
-  .chips.energy .chip { min-width: 34px; text-align: center; }
+  .chips.energy .lbl { font-size: .68rem; color: var(--text-faint); margin-right: 2px; }
+  .chips.energy .chip { min-width: 26px; text-align: center; }
 
   #gate {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+    padding: 10px 14px 14px;
   }
 
   #content { display: none; }
 
+  /* ---- tab'lar ---- */
+  .tabs { display: flex; gap: 2px; padding: 8px 10px 0; }
+  .tab {
+    background: transparent; border: 1px solid transparent; color: var(--text-faint);
+    font-family: inherit; font-size: .72rem; font-weight: 600; letter-spacing: .01em;
+    padding: 5px 11px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; cursor: pointer;
+  }
+  .tab:hover { color: var(--text-dim); }
+  .tab.active { color: var(--accent); background: rgba(127, 224, 160, .06); border-color: var(--border-soft); border-bottom-color: transparent; }
+  .tab-line { height: 1px; background: var(--border-soft); margin: 0 10px; }
+
+  /* ---- dars jadvali: ixcham grid, katakka bosib to'g'ridan-to'g'ri tahrirlanadi ---- */
+  .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -2px; }
+  table.jadval { border-collapse: collapse; width: 100%; min-width: 460px; font-size: .74rem; }
+  table.jadval th, table.jadval td { border: 1px solid var(--border-soft); padding: 0; }
+  table.jadval th {
+    background: rgba(255, 255, 255, .02); color: var(--text-dim); font-weight: 600;
+    font-size: .66rem; letter-spacing: .02em; text-transform: uppercase;
+    padding: 6px 6px; text-align: left; white-space: nowrap;
+  }
+  td.rownum {
+    color: var(--text-faint); text-align: center; width: 20px;
+    background: rgba(255, 255, 255, .012); font-variant-numeric: tabular-nums; font-size: .7rem;
+  }
+  .cell {
+    min-width: 68px; padding: 5px 6px; color: var(--text); outline: none; cursor: text;
+    white-space: pre-wrap; word-break: break-word; line-height: 1.35; min-height: 1.35em;
+    transition: background-color .12s ease;
+  }
+  .cell:hover { background: rgba(255, 255, 255, .02); }
+  .cell:focus { background: var(--accent-dim); box-shadow: inset 0 0 0 1px var(--accent); }
+  .cell:empty::before { content: "\2014"; color: var(--text-faint); }
+  .jadval-state { font-size: .68rem; color: var(--text-faint); padding: 7px 4px 0; min-height: 1.3em; }
+  .jadval-state.saving { color: var(--text-dim); }
+  .jadval-state.saved { color: var(--accent); }
+  .jadval-state.err { color: var(--red); }
+
   @media (max-width: 420px) {
-    .entry { flex-direction: column; gap: 3px; padding-left: 12px; }
+    .entry { flex-direction: column; gap: 2px; padding-left: 10px; }
     .ts { width: auto; }
     .day-count { display: none; }
   }
@@ -326,8 +367,8 @@
 <div class="page">
   <div class="card">
     <div class="topbar">
-      <img class="badge" src="/logo/logo.svg" alt="MRstatus" width="30" height="30">
-      <h1><span>MRstatus</span><span class="live-dot" aria-hidden="true"></span></h1>
+      <img class="badge" src="/logo/logo.svg" alt="" width="16" height="16">
+      <h1><b>mrstatus</b><span class="path">~/status</span><span class="live-dot" aria-hidden="true"></span></h1>
     </div>
 
     <div id="gate">
@@ -340,6 +381,13 @@
     </div>
 
     <div id="content">
+      <div class="tabs" id="tabs">
+        <button type="button" class="tab active" data-tab="status">status</button>
+        <button type="button" class="tab" data-tab="jadval">jadval</button>
+      </div>
+      <div class="tab-line"></div>
+
+      <div class="card-body" id="panelStatus">
       <div class="week" id="week" hidden>
         <div class="week-dots" id="weekDots"></div>
         <div class="week-note" id="weekNote"></div>
@@ -372,6 +420,27 @@
         <div class="state">yuklanmoqda...</div>
       </div>
       <div class="state hint">kun ustiga bosilsa, o'sha kun statuslari ochiladi · <button type="button" id="logoutBtn" class="linkbtn">chiqish</button></div>
+      </div>
+
+      <div class="card-body" id="panelJadval" hidden>
+        <div class="grid-wrap">
+          <table class="jadval">
+            <thead>
+              <tr>
+                <th></th>
+                <th title="Dushanba">Dush</th>
+                <th title="Seshanba">Sesh</th>
+                <th title="Chorshanba">Chor</th>
+                <th title="Payshanba">Pay</th>
+                <th title="Juma">Jum</th>
+                <th title="Shanba">Shan</th>
+              </tr>
+            </thead>
+            <tbody id="jadvalBody"></tbody>
+          </table>
+        </div>
+        <div class="jadval-state" id="jadvalState"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -608,6 +677,116 @@
     openSana = sana;
   });
 
+  // ---- DARS JADVALI: ixcham grid, katakka bosib yoziladi, 5s jimlikdan keyin avto-saqlanadi ----
+  const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const ROWS = 8;
+  const tabsEl = document.getElementById('tabs');
+  const panelStatusEl = document.getElementById('panelStatus');
+  const panelJadvalEl = document.getElementById('panelJadval');
+  const jadvalBodyEl = document.getElementById('jadvalBody');
+  const jadvalStateEl = document.getElementById('jadvalState');
+
+  (function buildJadvalGrid() {
+    let html = '';
+    for (let i = 1; i <= ROWS; i++) {
+      html += `<tr><td class="rownum">${i}</td>`;
+      for (const d of DAYS) html += `<td><div class="cell" contenteditable="true" data-key="${d}_${i}"></div></td>`;
+      html += '</tr>';
+    }
+    jadvalBodyEl.innerHTML = html;
+  })();
+
+  let jadvalLoaded = false;
+  let jadvalTimer = null;
+  let jadvalDirty = false;
+  let jadvalSaving = false;
+
+  tabsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('.tab');
+    if (!b) return;
+    tabsEl.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === b));
+    const showJadval = b.dataset.tab === 'jadval';
+    panelStatusEl.hidden = showJadval;
+    panelJadvalEl.hidden = !showJadval;
+    if (showJadval && !jadvalLoaded) loadJadval();
+  });
+
+  function readJadvalCells() {
+    const cells = {};
+    jadvalBodyEl.querySelectorAll('.cell').forEach(el => {
+      const v = el.textContent.trim();
+      if (v) cells[el.dataset.key] = v;
+    });
+    return cells;
+  }
+
+  async function loadJadval() {
+    if (!unlocked) return;
+    jadvalLoaded = true;
+    jadvalStateEl.textContent = 'yuklanmoqda...';
+    jadvalStateEl.className = 'jadval-state';
+    try {
+      const { r, data } = await api('/api/jadval');
+      if (r.status === 401) { showGate('sessiya tugadi, qayta kir', 'err'); return; }
+      if (!r.ok) throw new Error(data.error || r.status);
+      const cells = data.cells || {};
+      jadvalBodyEl.querySelectorAll('.cell').forEach(el => { el.textContent = cells[el.dataset.key] || ''; });
+      jadvalStateEl.textContent = '';
+    } catch (err) {
+      jadvalStateEl.textContent = `xato: ${err.message || err}`;
+      jadvalStateEl.className = 'jadval-state err';
+    }
+  }
+
+  async function saveJadval() {
+    if (jadvalSaving) { jadvalTimer = setTimeout(saveJadval, 1000); return; }
+    jadvalSaving = true;
+    jadvalDirty = false;
+    jadvalStateEl.textContent = 'saqlanmoqda...';
+    jadvalStateEl.className = 'jadval-state saving';
+    try {
+      const { r, data } = await api('/api/jadval', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cells: readJadvalCells() }),
+      });
+      if (r.status === 401) { showGate('sessiya tugadi, qayta kir', 'err'); return; }
+      if (!r.ok) throw new Error(data.error || r.status);
+      jadvalStateEl.textContent = 'saqlandi ✓';
+      jadvalStateEl.className = 'jadval-state saved';
+    } catch (err) {
+      jadvalStateEl.textContent = `saqlanmadi: ${err.message || err} — qayta urinilmoqda`;
+      jadvalStateEl.className = 'jadval-state err';
+      jadvalDirty = true;
+      jadvalTimer = setTimeout(saveJadval, 5000);
+    } finally {
+      jadvalSaving = false;
+    }
+  }
+
+  jadvalBodyEl.addEventListener('input', (e) => {
+    if (!e.target.closest('.cell')) return;
+    jadvalDirty = true;
+    jadvalStateEl.textContent = 'yozilmoqda...';
+    jadvalStateEl.className = 'jadval-state';
+    if (jadvalTimer) clearTimeout(jadvalTimer);
+    jadvalTimer = setTimeout(saveJadval, 5000);
+  });
+
+  // Enter — keyingi qatorga tushirmaydi, shunchaki katakdan chiqadi (jadval bir qatorli bo'lib qolsin).
+  jadvalBodyEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.closest('.cell')) { e.preventDefault(); e.target.blur(); }
+  });
+
+  // Sahifadan chiqishda hali saqlanmagan o'zgarish bo'lsa, oxirgi holatni beacon bilan yuboramiz.
+  window.addEventListener('pagehide', () => {
+    if (jadvalDirty && unlocked) {
+      try {
+        navigator.sendBeacon('/api/jadval', new Blob([JSON.stringify({ cells: readJadvalCells() })], { type: 'application/json' }));
+      } catch { /* beacon ishlamasa ham sahifa yopilishini to'xtatmaymiz */ }
+    }
+  });
+
   // ---- AUTH OQIMI ----
   // Login server orqali (/api/login): sayt ham, /mcp ham bitta eshikdan kiradi, IP hisobi ham bitta.
   // Sessiya = serverdan kelgan httpOnly cookie. Brauzerda localStorage/sessionStorage/IndexedDB ishlatilmaydi,
@@ -637,6 +816,12 @@
     emailInputEl.value = '';
     passInputEl.value = '';
     emailInputEl.focus();
+    if (jadvalTimer) { clearTimeout(jadvalTimer); jadvalTimer = null; }
+    jadvalLoaded = false;
+    jadvalDirty = false;
+    tabsEl.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'status'));
+    panelStatusEl.hidden = false;
+    panelJadvalEl.hidden = true;
   }
 
   function showBlocked() {

@@ -28,6 +28,16 @@ service cloud.firestore {
           && data.ts is timestamp;
     }
 
+    // Dars jadvali: bitta doimiy hujjat (jadval/main). "cells" — katak kaliti -> matn (masalan
+    // mon_1 -> "Sinf soati"). Aniq kalitlarni server (api/jadval.js) tekshiradi, bu yerda faqat
+    // umumiy shakl (map, oqilona hajm) va updated_at tekshiriladi.
+    function isValidJadval(data) {
+      return data.keys().hasOnly(['cells', 'updated_at'])
+          && data.cells is map
+          && data.cells.size() <= 48
+          && data.updated_at is timestamp;
+    }
+
     // Login vaqti: bitta hujjat, ikkita qat'iy maydon (before/now). "before" birinchi
     // login'da hali bo'lmasligi mumkin, shuning uchun null ham qabul qilinadi.
     function isValidLoginMeta(data) {
@@ -48,6 +58,12 @@ service cloud.firestore {
     match /ipguard/{id} {
       allow read: if isClaude();
       allow create, update: if isClaude() && isValidGuard(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /jadval/{id} {
+      allow read: if isClaude();
+      allow create, update: if isClaude() && isValidJadval(request.resource.data);
       allow delete: if false;
     }
 
