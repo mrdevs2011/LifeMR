@@ -20,12 +20,15 @@ service cloud.firestore {
           && data.timestamp is timestamp;
     }
 
+    // level/until ixtiyoriy: rules va kodni istalgan tartibda deploy qilsa bo'ladi.
     function isValidGuard(data) {
-      return data.keys().hasOnly(['hits', 'blocked', 'ts'])
+      return data.keys().hasOnly(['hits', 'blocked', 'ts', 'level', 'until'])
           && data.hits is list
           && data.hits.size() <= 3
           && data.blocked is bool
-          && data.ts is timestamp;
+          && data.ts is timestamp
+          && (!('level' in data) || (data.level is int && data.level >= 0 && data.level <= 100))
+          && (!('until' in data) || data.until == null || data.until is timestamp);
     }
 
     // Dars jadvali: bitta doimiy hujjat (jadval/main). "cells" — katak kaliti -> matn (masalan

@@ -3,8 +3,11 @@
 // Umumiy qatlam: bitta login, bitta IP hisobi, bitta sessiya.
 //   - Sayt (/) va /mcp sahifasi AYNAN BIR XIL authenticate() dan o'tadi.
 //   - IP hisobi butun domen uchun bitta: `ipguard/{sha256(ip)}` (sahifaga bog'liq emas).
-//   - 3 ta noto'g'ri urinish 5 DAQIQA ichida bo'lsa, IP doimiy bloklanadi. Urinishlar orasi 5 daqiqadan
+//   - 3 ta noto'g'ri urinish 5 DAQIQA ichida bo'lsa, IP vaqtincha bloklanadi. Urinishlar orasi 5 daqiqadan
 //     oshsa, eskisi hisobdan chiqadi (sirpanuvchi oyna).
+//   - Blok muddati QAT'IY jadvaldan olinadi (BLOCK_STEPS): 30 soniya, 1, 3, 10 daqiqa, 1.5 soat ... 1000 yil.
+//     Har 3 ta xato = jadvaldagi keyingi qator. Jadval tugagach (1000 yillik blok o'tgach) IP endi HECH QACHON
+//     bloklanmaydi: eshik ochiq, limit yo'q. Muvaffaqiyatli login darajani 0 ga qaytaradi (limitsiz holatdan tashqari).
 //   - Email: kiritilgani va env'dagi OWNER_EMAIL SHA-256 qilinib vaqt-xavfsiz solishtiriladi.
 //   - Parol: scrypt hash (env OWNER_PASS_HASH) bilan tekshiriladi. Parolning o'zi hech qayerda saqlanmaydi.
 //   - Sessiya: imzolangan (HMAC) httpOnly cookie. Brauzerda localStorage/IndexedDB ishlatilmaydi.
@@ -17,7 +20,44 @@ export const PROJECT_ID = "mrabout";
 export const MAX_FAILS = 3;
 export const WINDOW_MS = 5 * 60_000;
 export const SESSION_MS = 7 * 24 * 3600_000;
-const COOKIE = "mrs";
+const MAX_LEVEL = 50;
+
+// Blok muddatlari (QAT'IY jadval). Har 3 ta xatodan keyin keyingi qator ishlatiladi. Jadval tugagach (oxirgi blok o'tgach) blok yo'q.
+// Qiymatni o'zgartirish uchun shu qatorlarni tahrirla (muddat hech qachon kamaymasin). Oy = 30 kun, yil = 365 kun.
+const MIN = 60_000;
+const HOUR = 60 * MIN;
+const DAY = 24 * HOUR;
+const MONTH = 30 * DAY;
+const YEAR = 365 * DAY;
+export const BLOCK_STEPS = [
+  [30_000, "30 soniya"],
+  [1 * MIN, "1 daqiqa"],
+  [3 * MIN, "3 daqiqa"],
+  [10 * MIN, "10 daqiqa"],
+  [1.5 * HOUR, "1.5 soat"],
+  [3 * HOUR, "3 soat"],
+  [9 * HOUR, "9 soat"],
+  [1.5 * DAY, "1.5 kun"],
+  [3 * DAY, "3 kun"],
+  [9 * DAY, "9 kun"],
+  [1 * MONTH, "1 oy"],
+  [3 * MONTH, "3 oy"],
+  [6 * MONTH, "6 oy"],
+  [1 * YEAR, "1 yil"],
+  [2 * YEAR, "2 yil"],
+  [4 * YEAR, "4 yil"],
+  [10 * YEAR, "10 yil"],
+  [100 * YEAR, "100 yil"],
+  [1000 * YEAR, "1000 yil"],
+];
+// Firestore timestamp 0001..9999 yil oralig'ida bo'lishi shart (undan oshsa yozuv rad etiladi va login 503 beradi).
+// Eng uzun blok (1000 yil) bundan ancha oldin tugaydi, bu faqat himoya chegarasi.
+const MAX_UNTIL_MS = Date.UTC(9999, 11, 31);
+
+// level = shu IP'ga hozirgacha qo'yilgan bloklar soni (0 -> birinchi blok).
+// level jadval uzunligiga yetgach (oxirgi, 1000 yillik blok ham o'tgach) IP limitsiz: bloklanmaydi, urinishlar sanalmaydi.
+export const blockDurationMs = (level) => BLOCK_STEPS[Math.max(0, level)]?.[0] ?? null;
+export const isUnlimited = (level) => level >= BLOCK_STEPS.length;
 
 // ---------------------------------------------------------------------------
 // Kichik yordamchilar
@@ -131,19 +171,25 @@ export const key = () => `key=${process.env.FS_KEY}`;
 
 // ---------------------------------------------------------------------------
 // IP guard: Firestore (asosiy) + xotira (zaxira)
-// Hujjat: ipguard/{id} = { hits: [timestamp...], blocked: bool, ts }
+// Hujjat: ipguard/{id} = { hits: [timestamp...], blocked: bool, ts, level: int, until: timestamp|null }
+// blocked=true va until o'tmagan bo'lsa bloklangan. until yo'q (eski hujjat) bo'lsa doimiy blok, qo'lda ochiladi.
 // Har urinish TEKSHIRUVDAN OLDIN yoziladi (pre-charge), shuning uchun parallel so'rovlar bilan
 // 3 tadan ko'p parolni sinab bo'lmaydi. Yozuv optimistik qulf (updateTime) bilan, poyga bo'lmaydi.
 // ---------------------------------------------------------------------------
 const parseDoc = (d) => ({
   blocked: d?.fields?.blocked?.booleanValue === true,
   hits: (d?.fields?.hits?.arrayValue?.values || []).map((v) => Date.parse(v.timestampValue)).filter(Number.isFinite),
+  level: Math.max(0, Math.min(MAX_LEVEL, Number(d?.fields?.level?.integerValue) || 0)),
+  until: d?.fields?.until?.timestampValue ? Date.parse(d.fields.until.timestampValue) : null,
   updateTime: d?.updateTime || null,
 });
 
+// Hozir bloklanganmi? (blok muddati tugagan bo'lsa, blocked=true qolsa ham ochiq)
+const isActiveBlock = (g, now) => g.blocked && (g.until === null || !Number.isFinite(g.until) || g.until > now);
+
 async function fsReadGuard(id) {
   const r = await fsFetch(`${REST}/ipguard/${id}?${key()}`);
-  if (r.status === 404) return { blocked: false, hits: [], updateTime: null };
+  if (r.status === 404) return { blocked: false, hits: [], level: 0, until: null, updateTime: null };
   if (!r.ok) throw new Error(`guard get ${r.status}`);
   return parseDoc(await r.json());
 }
@@ -159,6 +205,8 @@ async function fsWriteGuard(id, state, updateTime) {
           fields: {
             hits: { arrayValue: { values: state.hits.map((t) => ({ timestampValue: new Date(t).toISOString() })) } },
             blocked: { booleanValue: state.blocked },
+            level: { integerValue: String(state.level || 0) },
+            until: state.until ? { timestampValue: new Date(state.until).toISOString() } : { nullValue: null },
             ts: { timestampValue: nowIso },
           },
         },
@@ -175,26 +223,35 @@ async function fsWriteGuard(id, state, updateTime) {
 
 const fsGuard = {
   async peek(id) {
-    return (await fsReadGuard(id)).blocked;
+    return isActiveBlock(await fsReadGuard(id), Date.now());
   },
   async charge(id) {
     for (let i = 0; i < 6; i++) {
       const cur = await fsReadGuard(id);
-      if (cur.blocked) return { blocked: true };
       const now = Date.now();
-      const hits = cur.hits.filter((t) => t > now - WINDOW_MS);
-      const next = [...hits, now].slice(-MAX_FAILS);
-      const blockNow = hits.length + 1 >= MAX_FAILS;
-      if (await fsWriteGuard(id, { hits: next, blocked: blockNow }, cur.updateTime)) {
-        return { blocked: false, count: hits.length + 1 };
+      if (isActiveBlock(cur, now)) return { blocked: true, until: cur.until };
+      // Barcha bloklar o'tgan: eshik ochiq, hisob yuritilmaydi va hech narsa yozilmaydi.
+      if (isUnlimited(cur.level)) return { blocked: false, unlimited: true };
+      // Blok tugagan (yoki umuman bo'lmagan): hisob noldan. Daraja (level) saqlanadi.
+      const hits = cur.blocked ? [] : cur.hits.filter((t) => t > now - WINDOW_MS);
+      const count = hits.length + 1;
+      let state;
+      if (count >= MAX_FAILS) {
+        const until = Math.min(now + blockDurationMs(cur.level), MAX_UNTIL_MS);
+        state = { hits: [], blocked: true, level: Math.min(cur.level + 1, MAX_LEVEL), until };
+      } else {
+        state = { hits: [...hits, now], blocked: false, level: cur.level, until: null };
       }
+      if (await fsWriteGuard(id, state, cur.updateTime)) return { blocked: false, count };
     }
     return { contended: true };
   },
   async reset(id) {
     for (let i = 0; i < 6; i++) {
       const cur = await fsReadGuard(id);
-      if (await fsWriteGuard(id, { hits: [], blocked: false }, cur.updateTime)) return;
+      // Limitsiz holat doimiy: to'g'ri login uni bekor qilmaydi (level saqlanadi).
+      const level = isUnlimited(cur.level) ? cur.level : 0;
+      if (await fsWriteGuard(id, { hits: [], blocked: false, level, until: null }, cur.updateTime)) return;
     }
   },
 };
@@ -280,6 +337,7 @@ export async function authenticate(req, email, password) {
     }
     return { ok: true };
   }
+  if (c.unlimited) return { status: 401, body: { error: "notogri_parol", unlimited: true } };
   const left = MAX_FAILS - c.count;
   if (left <= 0) return { status: 403, body: { error: "bloklangan" } };
   return { status: 401, body: { error: "notogri_parol", attempts_left: left } };

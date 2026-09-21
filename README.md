@@ -6,7 +6,7 @@ Shaxsiy check-in (kayfiyat/holat) logi. Brauzerdan yozasan, Claude orqali o'qila
 
 Hamma narsa **serverdan** o'tadi: sayt ham, `/mcp` sahifasi ham, Claude ham.
 - **Login bitta:** sayt (`/`) va `/mcp` bir xil `authenticate()` dan o'tadi va IP hisobi butun domen uchun bitta (`ipguard`). Sahifaga bog'liq emas.
-- **IP bloklash:** 5 daqiqa ichida 3 ta noto'g'ri urinish = IP doimiy bloklanadi. Urinishlar orasi 5 daqiqadan oshsa, eskisi hisobdan chiqadi.
+- **IP bloklash:** 5 daqiqa ichida 3 ta noto'g'ri urinish = IP vaqtincha bloklanadi. Muddat qat'iy jadvaldan olinadi (`api/_lib.js` dagi `BLOCK_STEPS`): 30 soniya, 1, 3, 10 daqiqa, 1.5, 3, 9 soat, 1.5, 3, 9 kun, 1, 3, 6 oy, 1, 2, 4, 10, 100, 1000 yil. Blok tugagach yana 3 ta xato = jadvaldagi keyingi qator. 1000 yillik blok ham o'tgach IP endi hech qachon bloklanmaydi (eshik ochiq, limit yo'q, urinishlar sanalmaydi). To'g'ri login darajani 0 ga qaytaradi (limitsiz holatdan tashqari). Urinishlar orasi 5 daqiqadan oshsa, eskisi hisobdan chiqadi.
 - **Email** env'da (`OWNER_EMAIL`), solishtirish SHA-256 hash orqali. **Parol** scrypt hash (`OWNER_PASS_HASH`), parolning o'zi hech qayerda yo'q.
 - **Sessiya:** imzolangan httpOnly cookie (7 kun). Brauzerda localStorage/IndexedDB ishlatilmaydi.
 - **Firestore rules:** faqat Claude akkaunti (server shu bilan kiradi). Boshqa hech kim to'g'ridan-to'g'ri kira olmaydi.
@@ -15,7 +15,7 @@ Hamma narsa **serverdan** o'tadi: sayt ham, `/mcp` sahifasi ham, Claude ham.
 ## Fayllar
 
 - `index.html`: sayt. Server orqali kirasan (`/api/login`), yozuvlar har 10 soniyada yangilanadi. Odat qatlami (7 kunlik ritm, tez yozish, eslatma) ham shu yerda.
-- `api/mcp.js`: Claude uchun remote MCP server (`get_guide`, `get_latest`, `get_status`, `get_stats`, `add_status`).
+- `api/mcp.js`: Claude uchun remote MCP server (`get_guide`, `get_latest`, `get_status`, `get_stats`, `add_status`, `get_schedule`, `set_schedule`).
 - `api/_guide.js`: Claude'ning asosiy qo'llanmasi (suhbat uslubi va qoidalar). **Qoidalarni o'zgartirish shu faylda.**
 - `api/_lib.js`: umumiy qatlam (login, IP hisobi, sessiya). `api/login.js`, `api/logout.js`, `api/checkins.js`: sayt uchun. `api/mcp-link.js`: `/mcp` uchun (bir xil login).
 - `tools/hash-password.mjs`: parolingdan `OWNER_PASS_HASH` yaratadi (`node tools/hash-password.mjs`).
@@ -58,7 +58,7 @@ Repo'ni GitHub'ga push qil: Vercel avtomatik deploy qiladi.
 - Brauzerda `https://<domen>/api/mcp?k=<MCP_TOKEN>` ochilsa `405` chiqishi kerak.
   - `401` = key xato, `404` = fayl deploy bo'lmagan, `500` = env yetishmayapti.
 - Sayt: `https://<domen>/` da email va parol bilan kir. Sessiya httpOnly cookie'da.
-- 5 daqiqa ichida 3 ta xato = IP bloklanadi. Ochish: Firebase Console → Firestore → `ipguard` → hujjatni o'chir.
+- 5 daqiqa ichida 3 ta xato = IP bloklanadi (muddati `BLOCK_STEPS` jadvalidan). Muddatdan oldin ochish yoki darajani nolga tushirish: Firebase Console → Firestore → `ipguard` → hujjatni o'chir. Eski (`until`siz) bloklangan hujjatlar doimiy qoladi, ularni ham shunday ochasan.
 
 ## 4. Claude accountlarni ulash (har accountga bir marta)
 

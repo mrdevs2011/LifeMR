@@ -267,7 +267,7 @@
         setTimeout(() => location.reload(), 1200); // yangilangach sahifa bloklangan holatda ochiladi
       } else if (r.status === 401) {
         const left = data.attempts_left;
-        setState("email yoki parol noto'g'ri" + (left ? `. ${left} ta urinish qoldi` : ''), 'err');
+        setState("email yoki parol noto'g'ri" + (data.unlimited ? ". Eshik ochiq, limit yo'q: qayta urinaver" : left ? `. ${left} ta urinish qoldi` : ''), 'err');
       } else if (r.status === 429) {
         setState(`juda ko'p urinish. ${data.retry_after_sec || 60} soniya kuting`, 'err');
       } else {

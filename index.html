@@ -708,7 +708,7 @@
     const showJadval = b.dataset.tab === 'jadval';
     panelStatusEl.hidden = showJadval;
     panelJadvalEl.hidden = !showJadval;
-    if (showJadval && !jadvalLoaded) loadJadval();
+    if (showJadval) loadJadval(jadvalLoaded);
   });
 
   function readJadvalCells() {
@@ -720,23 +720,39 @@
     return cells;
   }
 
-  async function loadJadval() {
+  // silent=true: fon yangilash (Claude jadvalni o'zgartirgan bo'lishi mumkin). Yozilayotgan yoki saqlanayotgan
+  // bo'lsa, ustidan yozmaydi, chunki sayt saqlashda butun gridni yuboradi.
+  async function loadJadval(silent) {
     if (!unlocked) return;
     jadvalLoaded = true;
-    jadvalStateEl.textContent = 'yuklanmoqda...';
-    jadvalStateEl.className = 'jadval-state';
+    if (!silent) {
+      jadvalStateEl.textContent = 'yuklanmoqda...';
+      jadvalStateEl.className = 'jadval-state';
+    }
     try {
       const { r, data } = await api('/api/jadval');
       if (r.status === 401) { showGate('sessiya tugadi, qayta kir', 'err'); return; }
       if (!r.ok) throw new Error(data.error || r.status);
+      if (jadvalDirty || jadvalSaving) return;
       const cells = data.cells || {};
-      jadvalBodyEl.querySelectorAll('.cell').forEach(el => { el.textContent = cells[el.dataset.key] || ''; });
-      jadvalStateEl.textContent = '';
+      jadvalBodyEl.querySelectorAll('.cell').forEach(el => {
+        const v = cells[el.dataset.key] || '';
+        if (el.textContent !== v) el.textContent = v;
+      });
+      if (!silent) jadvalStateEl.textContent = '';
     } catch (err) {
+      if (silent) return;
       jadvalStateEl.textContent = `xato: ${err.message || err}`;
       jadvalStateEl.className = 'jadval-state err';
     }
   }
+
+  // Jadval tab'i ochiq tursa, har 10 soniyada jimgina yangilanadi (Claude o'zgartirsa ko'rinadi).
+  setInterval(() => {
+    if (!unlocked || panelJadvalEl.hidden || document.hidden) return;
+    if (jadvalDirty || jadvalSaving || document.activeElement?.closest?.('.cell')) return;
+    loadJadval(true);
+  }, 10000);
 
   async function saveJadval() {
     if (jadvalSaving) { jadvalTimer = setTimeout(saveJadval, 1000); return; }
@@ -893,7 +909,8 @@
         return;
       }
       let msg = "email yoki parol noto'g'ri";
-      if (r.status === 401 && data.attempts_left) msg += `. ${data.attempts_left} ta urinish qoldi`;
+      if (r.status === 401 && data.unlimited) msg += ". Eshik ochiq, limit yo'q: qayta urinaver";
+      else if (r.status === 401 && data.attempts_left) msg += `. ${data.attempts_left} ta urinish qoldi`;
       else if (r.status === 429) msg = "juda ko'p so'rov, bir necha soniyadan keyin qayta urin";
       else if (r.status >= 500) msg = `server xatosi: ${data.error || r.status}`;
       gateStateEl.textContent = msg;
