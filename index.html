@@ -317,7 +317,7 @@
      rem chegaralari: juda past yoki juda baland bo'lib ketmasin.
      max-height (height emas): kontent kalta bo'lsa bo'sh joy qolmaydi. */
   .qbox {
-    max-height: clamp(10rem, 40dvh, 17rem);
+    max-height: clamp(10rem, 40dvh, 21rem);
     overflow-y: auto;
     padding: clamp(5px, 1.6vw, 8px);
     border: 1px solid var(--border-soft);
@@ -359,7 +359,9 @@
       "t3   t3   t3   t3   t3   t3   t3   t3   t4 t4 t4 t4"
       "t5   t5   t5   t5   big2 big2 big2 big2 i3 i3 i4 i4"
       "t6   t6   t6   t6   big2 big2 big2 big2 i3 i3 i4 i4"
-      "t7   t7   t7   t7   t8   t8   t8   t8   t8 t8 t8 t8";
+      "t7   t7   t7   t7   t8   t8   t8   t8   t8 t8 t8 t8"
+      "t9   t9   t9   t9   t10  t10  t10  t10  t11 t11 t11 t11"
+      "t12  t12  t12  t12  t13  t13  t13  t13  t14 t14 t14 t14";
   }
 
   /* Tor ekran: media query emas, container query — o'lcham ekranga emas,
@@ -375,7 +377,10 @@
         "t3   t3   t3   t3   t3   t3   t3   t3   t3   t3   t3   t3"
         "t4   t4   t4   t4   t4   t4   t5   t5   t5   t5   t5   t5"
         "t6   t6   t6   t6   t6   t6   t7   t7   t7   t7   t7   t7"
-        "t8   t8   t8   t8   t8   t8   t8   t8   t8   t8   t8   t8";
+        "t8   t8   t8   t8   t8   t8   t8   t8   t8   t8   t8   t8"
+        "t9   t9   t9   t9   t9   t9   t10  t10  t10  t10  t10  t10"
+        "t11  t11  t11  t11  t11  t11  t12  t12  t12  t12  t12  t12"
+        "t13  t13  t13  t13  t13  t13  t14  t14  t14  t14  t14  t14";
     }
   }
 
@@ -383,6 +388,8 @@
   .q-i1{grid-area:i1}.q-i2{grid-area:i2}.q-i3{grid-area:i3}.q-i4{grid-area:i4}
   .q-t1{grid-area:t1}.q-t2{grid-area:t2}.q-t3{grid-area:t3}.q-t4{grid-area:t4}
   .q-t5{grid-area:t5}.q-t6{grid-area:t6}.q-t7{grid-area:t7}.q-t8{grid-area:t8}
+  .q-t9{grid-area:t9}.q-t10{grid-area:t10}.q-t11{grid-area:t11}.q-t12{grid-area:t12}
+  .q-t13{grid-area:t13}.q-t14{grid-area:t14}
 
   .qt {
     display: flex; align-items: center; justify-content: center;
@@ -554,6 +561,13 @@
           <button type="button" class="qt q-t6" data-t="bored" aria-pressed="false"><span>bored</span></button>
           <button type="button" class="qt q-t7" data-t="feeling good" aria-pressed="false"><span>feeling good</span></button>
           <button type="button" class="qt q-t8" data-t="stuck on a bug" aria-pressed="false"><span>stuck on a bug</span></button>
+
+          <button type="button" class="qt q-t9" data-t="woke up" aria-pressed="false"><span>woke up</span></button>
+          <button type="button" class="qt q-t10" data-t="going to school" aria-pressed="false"><span>going to school</span></button>
+          <button type="button" class="qt q-t11" data-t="fixed a bug" aria-pressed="false"><span>fixed a bug</span></button>
+          <button type="button" class="qt q-t12" data-t="pushed code" aria-pressed="false"><span>pushed code</span></button>
+          <button type="button" class="qt q-t13" data-t="stressed" aria-pressed="false"><span>stressed</span></button>
+          <button type="button" class="qt q-t14" data-t="with friends" aria-pressed="false"><span>with friends</span></button>
 
         </div>
         </div>
