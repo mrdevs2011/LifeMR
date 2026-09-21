@@ -88,19 +88,11 @@
   }
 
   .badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     width: 30px;
     height: 30px;
     flex-shrink: 0;
-    border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .02em;
-    color: var(--text-dim);
-    background: var(--bg);
   }
 
   h1 {
@@ -334,7 +326,7 @@
 <div class="page">
   <div class="card">
     <div class="topbar">
-      <div class="badge">MR</div>
+      <img class="badge" src="/logo/logo.svg" alt="MRstatus" width="30" height="30">
       <h1><span>MRstatus</span><span class="live-dot" aria-hidden="true"></span></h1>
     </div>
 

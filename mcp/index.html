@@ -71,18 +71,11 @@
   .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: clamp(18px, 4vw, 26px); }
 
   .badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block;
     width: 30px;
     height: 30px;
     flex-shrink: 0;
-    border: 1px solid var(--border);
     border-radius: 8px;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-dim);
-    background: var(--bg);
   }
 
   h1 {
@@ -164,7 +157,7 @@
 <main class="page">
   <section class="card">
     <header class="topbar">
-      <div class="badge">MR</div>
+      <img class="badge" src="/logo/logo.svg" alt="MRstatus" width="30" height="30">
       <h1><span>MRstatusMCP</span><span class="live-dot" aria-hidden="true"></span></h1>
     </header>
 
