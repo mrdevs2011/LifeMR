@@ -2,7 +2,7 @@
 // Bitta doimiy hujjat: jadval/main. Katak kaliti: "<kun>_<soat>" (masalan mon_1..sat_8).
 // Har PUT butun gridni almashtiradi (bo'sh katak yozilmaydi, shuning uchun hujjat faqat
 // to'ldirilgan kataklarni saqlaydi).
-import { REST, fsFetch, hasSession, key, readJson, send, sessionCookie } from "./_lib.js";
+import { REST, fsFetch, key, requireSession, readJson, send, sessionCookie } from "./_lib.js";
 
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat"];
 const ROWS = 8;
@@ -12,7 +12,8 @@ const ALLOWED_KEYS = new Set();
 for (const d of DAYS) for (let i = 1; i <= ROWS; i++) ALLOWED_KEYS.add(`${d}_${i}`);
 
 export default async function handler(req, res) {
-  if (!hasSession(req)) return send(res, 401, { error: "kirish kerak" });
+  // Sessiya + IP bloki: bloklangan IP'dan keladigan so'rov (boshqa qurilma ham) 403 oladi.
+  if (!(await requireSession(req, res))) return;
   res.setHeader("Set-Cookie", sessionCookie());
   for (const k of ["FS_KEY", "CLAUDE_EMAIL", "CLAUDE_PASSWORD"]) {
     if (!process.env[k]) return send(res, 500, { error: `${k} sozlanmagan` });

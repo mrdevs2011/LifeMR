@@ -1,17 +1,20 @@
 // api/login.js: sayt (/) uchun yagona kirish eshigi.
 //   GET  -> { authed, blocked }
 //   POST { email, password } -> 200 + cookie | 401 | 403 (bloklangan) | 429
-import { authenticate, hasSession, isBlocked, readJson, recordLogin, send, sessionCookie } from "./_lib.js";
+import { authenticate, blockInfo, hasSession, readJson, recordLogin, send, sessionCookie } from "./_lib.js";
 
 export default async function handler(req, res) {
   if (req.method === "GET") {
+    // IP bloklangan bo'lsa, cookie to'g'ri bo'lsa ham kirmaysan: butun IP bloklanadi (qolgan vaqt bilan qaytadi).
+    const b = await blockInfo(req);
+    if (b.blocked) return send(res, 200, { authed: false, ...b });
     const authed = hasSession(req);
     // Sahifa ochilganda (faqat shu payt, har 10 soniyalik pollingda emas) — sessiya orqali
     // allaqachon kirgan bo'lsang ham, "saytga kirish" sifatida hisoblanadi.
     // Javobdan OLDIN kutiladi: aks holda Vercel funksiyasi javob yuborilgach darhol to'xtatilib,
     // hali tugamagan Firestore yozuvi bekor bo'lib qolishi mumkin (shu sabab avval sirpanib ketardi).
     if (authed) await recordLogin();
-    return send(res, 200, { authed, blocked: authed ? false : await isBlocked(req) });
+    return send(res, 200, { authed, blocked: false });
   }
   if (req.method !== "POST") {
     res.setHeader("Allow", "GET, POST");

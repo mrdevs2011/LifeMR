@@ -20,6 +20,7 @@ export const PROJECT_ID = "mrabout";
 export const MAX_FAILS = 3;
 export const WINDOW_MS = 5 * 60_000;
 export const SESSION_MS = 7 * 24 * 3600_000;
+const COOKIE = "mrs";
 const MAX_LEVEL = 50;
 
 // Blok muddatlari (QAT'IY jadval). Har 3 ta xatodan keyin keyingi qator ishlatiladi. Jadval tugagach (oxirgi blok o'tgach) blok yo'q.
@@ -225,6 +226,11 @@ const fsGuard = {
   async peek(id) {
     return isActiveBlock(await fsReadGuard(id), Date.now());
   },
+  // Blok holati va tugash vaqti (ms). until=null bo'lsa doimiy (eski hujjat).
+  async info(id) {
+    const cur = await fsReadGuard(id);
+    return isActiveBlock(cur, Date.now()) ? { blocked: true, until: cur.until } : { blocked: false };
+  },
   async charge(id) {
     for (let i = 0; i < 6; i++) {
       const cur = await fsReadGuard(id);
@@ -242,7 +248,7 @@ const fsGuard = {
       } else {
         state = { hits: [...hits, now], blocked: false, level: cur.level, until: null };
       }
-      if (await fsWriteGuard(id, state, cur.updateTime)) return { blocked: false, count };
+      if (await fsWriteGuard(id, state, cur.updateTime)) return { blocked: false, count, until: state.blocked ? state.until : undefined };
     }
     return { contended: true };
   },
@@ -267,15 +273,43 @@ async function guardCall(method, id, ...a) {
   return fsGuard[method](id, ...a);
 }
 
-// Faqat sahifada formani ko'rsatish/berkitish uchun ishlatiladi (kosmetik).
-// Xato bo'lsa "blocked emas" deb hisoblaydi — haqiqiy tekshiruv authenticate() ichida,
-// u yerda xato bo'lsa kirish 503 bilan to'xtatiladi (pastga qara).
-export async function isBlocked(req) {
+// Blok javobiga qo'shiladigan maydonlar: mijoz shu bilan orqaga sanashni ko'rsatadi.
+// retry_after_sec (qolgan soniya) serverning soati bo'yicha: brauzer soati noto'g'ri bo'lsa ham hisob to'g'ri.
+export function blockFields(until) {
+  if (until == null || !Number.isFinite(until)) return { permanent: true };
+  return { blocked_until: until, retry_after_sec: Math.max(1, Math.ceil((until - Date.now()) / 1000)) };
+}
+
+// Shu IP bloklanganmi? Blok IP bo'yicha: sessiyaga, brauzerga, qurilmaga bog'liq emas.
+// Xato bo'lsa "blocked emas" (kosmetik tekshiruv). Haqiqiy login himoyasi authenticate() ichida (fail-closed).
+// Qaytaradi: { blocked:false } | { blocked:true, blocked_until, retry_after_sec } | { blocked:true, permanent:true }
+export async function blockInfo(req) {
   try {
-    return Boolean(await guardCall("peek", ipKey(clientIp(req))));
+    const r = await guardCall("info", ipKey(clientIp(req)));
+    return r.blocked ? { blocked: true, ...blockFields(r.until) } : { blocked: false };
   } catch {
+    return { blocked: false };
+  }
+}
+
+export async function isBlocked(req) {
+  return (await blockInfo(req)).blocked;
+}
+
+// Sessiya cookie to'g'ri BO'LSA HAM, IP bloklangan bo'lsa kirish yo'q: butun IP bloklanadi, shu IP'dan
+// boshqa qurilmada ochiq turgan hisob ham keyingi so'rovdayoq bloklangan ekranga tushadi.
+// Qaytaradi: true (davom et) | false (javob allaqachon yuborildi).
+export async function requireSession(req, res) {
+  if (!hasSession(req)) {
+    send(res, 401, { error: "kirish kerak" });
     return false;
   }
+  const b = await blockInfo(req);
+  if (b.blocked) {
+    send(res, 403, { error: "bloklangan", ...b });
+    return false;
+  }
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -328,7 +362,7 @@ export async function authenticate(req, email, password) {
     console.error("[guard]", String(e?.message || e));
     return { status: 503, body: { error: "vaqtincha_ishlamayapti" } };
   }
-  if (c.blocked) return { status: 403, body: { error: "bloklangan" } };
+  if (c.blocked) return { status: 403, body: { error: "bloklangan", ...blockFields(c.until) } };
   if (c.contended) return { status: 429, body: { error: "juda_kop_urinish", retry_after_sec: 5 } };
 
   if (await credentialsOk(email, password)) {
@@ -341,7 +375,7 @@ export async function authenticate(req, email, password) {
   }
   if (c.unlimited) return { status: 401, body: { error: "notogri_parol", unlimited: true } };
   const left = MAX_FAILS - c.count;
-  if (left <= 0) return { status: 403, body: { error: "bloklangan" } };
+  if (left <= 0) return { status: 403, body: { error: "bloklangan", ...blockFields(c.until) } };
   return { status: 401, body: { error: "notogri_parol", attempts_left: left } };
 }
 

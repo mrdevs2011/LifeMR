@@ -814,6 +814,8 @@
   const api = async (path, opts = {}) => {
     const r = await fetch(path, { credentials: 'same-origin', cache: 'no-store', ...opts });
     const data = await r.json().catch(() => ({}));
+    // IP bloklangan bo'lsa (istalgan so'rovda, ochiq turgan sessiyada ham) darhol bloklangan ekran + orqaga sanash.
+    if (r.status === 403 && data.error === 'bloklangan') showBlocked(data);
     return { r, data };
   };
 
@@ -840,14 +842,62 @@
     panelJadvalEl.hidden = true;
   }
 
-  function showBlocked() {
+  // Qolgan soniyani odam o'qiydigan ko'rinishga o'giradi: "1 yil 12 kun 3 soat 20 daqiqa 15 soniya"
+  function fmtLeft(total) {
+    let s = Math.max(0, Math.floor(total));
+    const Y = 31536000, D = 86400;
+    const y = Math.floor(s / Y); s -= y * Y;
+    const d = Math.floor(s / D); s -= d * D;
+    const hh = Math.floor(s / 3600); s -= hh * 3600;
+    const mm = Math.floor(s / 60); s -= mm * 60;
+    const parts = [];
+    if (y) parts.push(`${y} yil`);
+    if (d) parts.push(`${d} kun`);
+    if (hh) parts.push(`${hh} soat`);
+    if (mm) parts.push(`${mm} daqiqa`);
+    parts.push(`${s} soniya`);
+    return parts.join(' ');
+  }
+
+  // Blok IP bo'yicha serverda turadi, shuning uchun sahifani yangilasang ham, boshqa brauzer yoki qurilmadan
+  // kirsang ham (shu IP'dan) qolgan vaqt server javobidan qayta olinadi va orqaga sanash davom etadi.
+  let blockTimer = null;
+  function showBlocked(info = {}) {
     unlocked = false;
     stopPolling();
+    if (blockTimer) { clearInterval(blockTimer); blockTimer = null; }
     contentEl.style.display = 'none';
     gateEl.style.display = 'flex';
     loginFormEl.style.display = 'none';
-    gateStateEl.textContent = 'IP manzilingiz bloklangan';
     gateStateEl.className = 'state err';
+    if (info.permanent || !Number.isFinite(info.retry_after_sec)) {
+      gateStateEl.textContent = 'IP manzilingiz bloklangan';
+      return;
+    }
+    // Faqat farqdan foydalanamiz (serverdan kelgan qolgan soniya + brauzerdagi o'tgan vaqt): brauzer soati noto'g'ri bo'lsa ham xato bo'lmaydi.
+    const endAt = performance.now() + info.retry_after_sec * 1000;
+    const tick = () => {
+      const left = Math.ceil((endAt - performance.now()) / 1000);
+      if (left <= 0) {
+        clearInterval(blockTimer); blockTimer = null;
+        recheckAfterBlock();
+        return;
+      }
+      gateStateEl.textContent = `IP manzilingiz bloklandi. Ochilishiga: ${fmtLeft(left)}`;
+    };
+    tick();
+    blockTimer = setInterval(tick, 1000);
+  }
+
+  // Sanash tugadi: serverdan holatni so'raymiz. Ochilgan bo'lsa saytga (sessiya bor bo'lsa) yoki login formasiga qaytamiz.
+  async function recheckAfterBlock() {
+    try {
+      const { data } = await api('/api/login');
+      if (data.blocked) { showBlocked(data); return; }
+      if (data.authed) unlockApp(); else showGate();
+    } catch {
+      showBlocked({ retry_after_sec: 5 });
+    }
   }
 
   // Server yozuvlarini eski render() kutgan shaklga o'giramiz
@@ -902,12 +952,7 @@
       emailInputEl.value = '';
       passInputEl.value = '';
       if (r.ok) { unlockApp(); return; }
-      if (r.status === 403) {
-        gateStateEl.textContent = 'IP manzilingiz bloklandi';
-        gateStateEl.className = 'state err';
-        setTimeout(() => location.reload(), 1200); // yangilangach sahifa bloklangan holatda ochiladi
-        return;
-      }
+      if (r.status === 403) return; // api() bloklangan ekranni va orqaga sanashni allaqachon ko'rsatdi
       let msg = "email yoki parol noto'g'ri";
       if (r.status === 401 && data.unlimited) msg += ". Eshik ochiq, limit yo'q: qayta urinaver";
       else if (r.status === 401 && data.attempts_left) msg += `. ${data.attempts_left} ta urinish qoldi`;
@@ -968,8 +1013,8 @@
   (async () => {
     try {
       const { data } = await api('/api/login');
-      if (data.authed) unlockApp();
-      else if (data.blocked) showBlocked();
+      if (data.blocked) showBlocked(data);
+      else if (data.authed) unlockApp();
       else showGate();
     } catch {
       showGate("server bilan bog'lanib bo'lmadi", 'err');

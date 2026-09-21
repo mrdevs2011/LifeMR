@@ -229,6 +229,61 @@
     lockTimer = setTimeout(() => lock('vaqt tugadi, manzil yopildi'), AUTO_LOCK_MS);
   }
 
+  function fmtLeft(total) {
+    let s = Math.max(0, Math.floor(total));
+    const Y = 31536000, D = 86400;
+    const y = Math.floor(s / Y); s -= y * Y;
+    const d = Math.floor(s / D); s -= d * D;
+    const hh = Math.floor(s / 3600); s -= hh * 3600;
+    const mm = Math.floor(s / 60); s -= mm * 60;
+    const parts = [];
+    if (y) parts.push(`${y} yil`);
+    if (d) parts.push(`${d} kun`);
+    if (hh) parts.push(`${hh} soat`);
+    if (mm) parts.push(`${mm} daqiqa`);
+    parts.push(`${s} soniya`);
+    return parts.join(' ');
+  }
+
+  // IP bloklangan: forma yashirinadi, qolgan vaqt orqaga sanaladi. Blok serverda IP bo'yicha turadi,
+  // shuning uchun sahifani yangilasang ham (yoki boshqa qurilmadan, shu IP'dan) sanash davom etadi.
+  let blockTimer = null;
+  function showBlocked(info = {}) {
+    if (blockTimer) { clearInterval(blockTimer); blockTimer = null; }
+    gateEl.hidden = true;
+    gateEl.style.display = 'none';
+    if (info.permanent || !Number.isFinite(info.retry_after_sec)) {
+      setState('IP manzilingiz bloklangan', 'err');
+      return;
+    }
+    const endAt = performance.now() + info.retry_after_sec * 1000;
+    const tick = () => {
+      const left = Math.ceil((endAt - performance.now()) / 1000);
+      if (left <= 0) {
+        clearInterval(blockTimer); blockTimer = null;
+        recheckAfterBlock();
+        return;
+      }
+      setState(`IP manzilingiz bloklandi. Ochilishiga: ${fmtLeft(left)}`, 'err');
+    };
+    tick();
+    blockTimer = setInterval(tick, 1000);
+  }
+
+  async function recheckAfterBlock() {
+    try {
+      const r = await fetch('/api/mcp-link', { cache: 'no-store' });
+      const d = await r.json();
+      if (d && d.blocked) { showBlocked(d); return; }
+      gateEl.style.display = '';
+      gateEl.hidden = false;
+      setState('Kirish');
+      passEl.focus();
+    } catch {
+      showBlocked({ retry_after_sec: 5 });
+    }
+  }
+
   function lock(message = 'yopildi') {
     clearTimeout(lockTimer);
     lockTimer = null;
@@ -263,8 +318,7 @@
       if (r.ok && data.url) {
         showUrl(data.url);
       } else if (r.status === 403) {
-        setState("IP manzilingiz bloklandi", 'err');
-        setTimeout(() => location.reload(), 1200); // yangilangach sahifa bloklangan holatda ochiladi
+        showBlocked(data);
       } else if (r.status === 401) {
         const left = data.attempts_left;
         setState("email yoki parol noto'g'ri" + (data.unlimited ? ". Eshik ochiq, limit yo'q: qayta urinaver" : left ? `. ${left} ta urinish qoldi` : ''), 'err');
@@ -302,11 +356,7 @@
   fetch('/api/mcp-link', { cache: 'no-store' })
     .then((r) => r.json())
     .then((d) => {
-      if (d && d.blocked) {
-        gateEl.hidden = true;
-        gateEl.style.display = 'none';
-        setState('IP manzilingiz bloklangan', 'err');
-      }
+      if (d && d.blocked) showBlocked(d);
     })
     .catch(() => {});
 

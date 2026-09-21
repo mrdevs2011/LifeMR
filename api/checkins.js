@@ -1,6 +1,6 @@
 // api/checkins.js: sayt yozuvlarini o'qish/yozish. Faqat sessiya cookie bilan.
 // Server Firestore'ga Claude akkaunti bilan boradi (rules faqat shu UID'ga ruxsat beradi).
-import { REST, fsFetch, hasSession, key, readJson, send, sessionCookie } from "./_lib.js";
+import { REST, fsFetch, key, requireSession, readJson, send, sessionCookie } from "./_lib.js";
 
 const LIMIT = 300;
 
@@ -15,7 +15,8 @@ function tashkentVaqt() {
 }
 
 export default async function handler(req, res) {
-  if (!hasSession(req)) return send(res, 401, { error: "kirish kerak" });
+  // Sessiya + IP bloki: bloklangan IP'dan keladigan so'rov (boshqa qurilma ham) 403 oladi.
+  if (!(await requireSession(req, res))) return;
   // Sirpanuvchi sessiya: sayt ochilgan sari (bu so'rov shu payt yuboriladi) muddat yana 7 kunga
   // uzayadi — muddat SERVERNING soatiga qarab hisoblanadi (Date.now()), brauzer soatiga emas,
   // shuning uchun lokal vaqtni o'zgartirib aldab bo'lmaydi. 7 kun davomida umuman kirmasang,
