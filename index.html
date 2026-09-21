@@ -27,6 +27,7 @@
     --accent-dim: rgba(127, 224, 160, .1);
     --red: #f2726f;
     --red-dim: rgba(242, 114, 111, .1);
+    --tag: #7fb2e6;
     --radius: 6px;
     --radius-sm: 4px;
     --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -95,6 +96,11 @@
 
 
   .badge { width: 19px; height: 19px; border-radius: 5px; flex-shrink: 0; display: block; }
+
+  /* header ikonka = "uy" havolasi: har sahifada lifemr.vercel.app/ ga olib boradi (o'sha tabda).
+     Ildizda (/) turganda hech narsa qilmaydi va kursor oddiy strelka bo'lib qoladi. */
+  .home-link { display: block; flex-shrink: 0; line-height: 0; border-radius: 5px; cursor: pointer; }
+  .home-link[aria-current="page"] { cursor: default; }
 
   h1 {
     display: flex;
@@ -303,6 +309,22 @@
   .chips.energy .lbl { font-size: .68rem; color: var(--text-faint); margin-right: 2px; }
   .chips.energy .chip { min-width: 26px; text-align: center; }
 
+  /* ---- #teg maydoni ----
+     <input> ichidagi matnning bir qismini bo'yab bo'lmaydi. Shuning uchun "ko'zgu" usuli:
+     input'ning matni shaffof (faqat kursor ko'rinadi), uning ORQASIDA aynan shu matn
+     teglari bo'yalgan holda .tf-hl da chiziladi. Ikkalasi bir xil shrift/padding/joyda turadi,
+     shuning uchun foydalanuvchiga bitta oddiy input bo'lib ko'rinadi. */
+  .tagfield { position: relative; flex: 1; min-width: 0; display: flex; background: var(--bg); border-radius: var(--radius-sm); }
+  .tagfield .tf-input { position: relative; z-index: 1; flex: 1; background: transparent; color: transparent; caret-color: var(--text); }
+  .tagfield .tf-input::selection { background: rgba(127, 224, 160, .28); color: transparent; }
+  .tf-hl {
+    position: absolute; inset: 0 13px; /* 1px border + 12px padding = input'ning kontent qutisi */
+    display: flex; align-items: center; overflow: hidden; pointer-events: none;
+    font-size: .88rem; color: var(--text);
+  }
+  .tf-hl > span { flex: none; white-space: pre; }
+  .tag { color: var(--tag); }
+
   /* ---- tezkor kiritish: bento grid ----
      Hech qayerda px kenglik/balandlik yo'q. Ustunlar — 12 ta teng fr,
      qatorlar — rem (html font-size allaqachon clamp() bilan o'sadi),
@@ -492,7 +514,9 @@
 <div class="page">
   <div class="card">
     <div class="topbar">
-      <img class="badge" src="/logo/logo.svg" alt="" width="16" height="16">
+      <a class="home-link" id="homeLink" href="/" aria-label="LifeMR home">
+        <img class="badge" src="/logo/logo.svg" alt="" width="16" height="16">
+      </a>
       <h1><b>LifeMR</b><span class="path">~/life</span><span class="live-dot" aria-hidden="true"></span></h1>
     </div>
 
@@ -520,7 +544,10 @@
       <div class="nudge" id="nudge" hidden></div>
 
       <form id="statusForm">
-        <input type="text" class="inp" id="holatInput" placeholder="write how you are..." autocomplete="off" maxlength="490" required>
+        <div class="tagfield">
+          <div class="tf-hl" id="tfHl" aria-hidden="true"><span id="tfHlIn"></span></div>
+          <input type="text" class="inp tf-input" id="holatInput" placeholder="write how you are..." autocomplete="off" spellcheck="false" maxlength="490" required>
+        </div>
         <button type="submit" id="submitBtn">send</button>
       </form>
       <div class="qwrap">
@@ -553,7 +580,7 @@
             <svg viewBox="0 0 24 24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7.6C10.5 6.1 8 5.5 4.6 5.5v12c3.4 0 5.9.6 7.4 2.1"/><path d="M12 7.6c1.5-1.5 4-2.1 7.4-2.1v12c-3.4 0-5.9.6-7.4 2.1"/><path d="M12 7.6v12"/></svg>
           </button>
 
-          <button type="button" class="qt q-t1" data-t="on a new project" aria-pressed="false"><span>new project</span></button>
+          <button type="button" class="qt q-t1" data-t="new project" aria-pressed="false"><span>new project</span></button>
           <button type="button" class="qt q-t2" data-t="did homework" aria-pressed="false"><span>did homework</span></button>
           <button type="button" class="qt q-t3" data-t="wasted time on the phone" aria-pressed="false"><span>wasted time on the phone</span></button>
           <button type="button" class="qt q-t4" data-t="tired" aria-pressed="false"><span>tired</span></button>
@@ -628,10 +655,36 @@
   const loginFormEl = document.getElementById('loginForm');
   const logoutBtnEl = document.getElementById('logoutBtn');
 
+  // Header ikonka: ildizda (/) bo'lsak bosish hech narsani o'zgartirmaydi (reload ham yo'q),
+  // boshqa sahifada (/mcp va h.k.) oddiy havola sifatida "/" ga o'tadi, target=_blank emas.
+  const homeLinkEl = document.getElementById('homeLink');
+  const onRoot = ['/', '/index.html'].includes(location.pathname);
+  if (onRoot) homeLinkEl.setAttribute('aria-current', 'page');
+  homeLinkEl.addEventListener('click', (e) => { if (onRoot) e.preventDefault(); });
+
   function esc(s) {
     const d = document.createElement('div');
     d.innerText = s;
     return d.innerHTML;
+  }
+
+  // ---- TEG QATLAMI ----
+  // Teg = "#" bilan boshlangan so'z (harf/raqam/_ va ichida - yoki '). Bo'shliq tegni tugatadi.
+  // "#" so'z boshida turishi shart (ya'ni "a#b" teg emas). Tegli matn alohida joyda saqlanmaydi:
+  // status matnining o'zida "#eating i eat bread" bo'lib yotadi.
+  const TAG_BODY = "#[\\p{L}\\p{N}_]+(?:[-'\u2019\u02BB\u02BC][\\p{L}\\p{N}_]+)*";
+  const TAG_RE = new RegExp('(^|\\s)(' + TAG_BODY + ')', 'gu');
+  const LEAD_RE = new RegExp('^(?:\\s*' + TAG_BODY + ')*', 'u');
+
+  // matn -> HTML: teglar <span class="tag"> ichida (input ko'zgusida ham, tarixda ham shu ishlaydi)
+  function renderTags(text) {
+    let out = '', last = 0;
+    for (const m of text.matchAll(TAG_RE)) {
+      const start = m.index + m[1].length;
+      out += esc(text.slice(last, start)) + `<span class="tag">${esc(m[2])}</span>`;
+      last = start + m[2].length;
+    }
+    return out + esc(text.slice(last));
   }
 
   // ---- ODAT QATLAMI ----
@@ -714,31 +767,50 @@
   let energy = 0;
 
   // Bento grid. Yagona haqiqat manbai — input matni, tugmalarda alohida state yo'q:
-  // matnni vergul bo'yicha bo'lamiz, bosilgan matn ro'yxatda bo'lsa olib tashlanadi,
-  // bo'lmasa qo'shiladi. Shuning uchun qo'lda yozsang ham tugmalar o'zi yonadi/o'chadi.
+  // tugma bosilsa input'ga "#teg" qo'shiladi (bo'shliqlar chiziqchaga: "home from school" -> #home-from-school),
+  // qayta bosilsa o'sha teg olib tashlanadi. Qo'lda "#coding" deb yozsang ham tugma o'zi yonadi.
   const qgridEl = document.getElementById('qgrid');
-  const qNorm = (s) => s.trim().toLowerCase().replace(/\s*:[1-5]$/, '');
-  const qParts = () => inputEl.value.split(',').map(s => s.trim()).filter(Boolean);
+  const hlInEl = document.getElementById('tfHlIn');
+  const slug = (s) => s.trim().toLowerCase().replace(/\s+/g, '-');
+  const tileTag = (b) => '#' + slug(b.dataset.t);
+  const tagsIn = (v) => new Set([...v.matchAll(TAG_RE)].map(m => m[2].toLowerCase()));
 
+  // teg qo'shish: boshidagi tegler qatorining oxiriga, keyin foydalanuvchi yozadigan joy uchun bitta bo'shliq
+  function addTag(v, tag) {
+    const run = LEAD_RE.exec(v)[0];
+    const rest = v.slice(run.length).replace(/^\s+/, '');
+    return (run.trim() ? run.trim() + ' ' : '') + tag + ' ' + rest;
+  }
+  const removeTag = (v, tag) =>
+    v.replace(TAG_RE, (m, pre, t) => t.toLowerCase() === tag ? '' : m).replace(/^\s+/, '');
+
+  // input matni o'zgarganda: tugmalar holati + ko'zgu (bo'yalgan teglar) + gorizontal scroll sinxroni
+  function paintHl() {
+    hlInEl.innerHTML = renderTags(inputEl.value);
+    hlInEl.style.transform = `translateX(${-inputEl.scrollLeft}px)`;
+  }
   function syncTiles() {
-    const have = new Set(qParts().map(qNorm));
+    const have = tagsIn(inputEl.value);
     qgridEl.querySelectorAll('.qt').forEach(b => {
-      const on = have.has(qNorm(b.dataset.t));
+      const on = have.has(tileTag(b));
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
+    paintHl();
   }
 
   qgridEl.addEventListener('click', (e) => {
     const b = e.target.closest('.qt'); if (!b) return;
-    const list = qParts();
-    const i = list.findIndex(p => qNorm(p) === qNorm(b.dataset.t));
-    if (i >= 0) list.splice(i, 1); else list.push(b.dataset.t);
-    inputEl.value = list.join(', ');
-    syncTiles();
+    const tag = tileTag(b);
+    inputEl.value = tagsIn(inputEl.value).has(tag) ? removeTag(inputEl.value, tag) : addTag(inputEl.value, tag);
     inputEl.focus();
+    inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+    syncTiles();
   });
 
+  // Uzun matnda input o'zi gorizontal suriladi; ko'zgu ham xuddi shunday surilishi kerak.
+  ['scroll', 'keyup', 'click', 'select', 'focus'].forEach(ev => inputEl.addEventListener(ev, paintHl));
+  document.addEventListener('selectionchange', () => { if (document.activeElement === inputEl) paintHl(); });
   inputEl.addEventListener('input', syncTiles);
   document.getElementById('energyChips').addEventListener('click', (e) => {
     const b = e.target.closest('.chip'); if (!b) return;
@@ -821,7 +893,7 @@
       html += `</div>`;
       html += `<div class="day-entries">`;
       for (const y of yozuvlar) {
-        html += `<div class="entry"><div class="ts">${esc(y.soat)}</div><div class="holat">${esc(y.holat)}</div></div>`;
+        html += `<div class="entry"><div class="ts">${esc(y.soat)}</div><div class="holat">${renderTags(y.holat)}</div></div>`;
       }
       html += `</div></div>`;
     }
@@ -1201,7 +1273,7 @@
   formEl.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!unlocked) return;
-    let holat = inputEl.value.trim();
+    let holat = inputEl.value.trim().replace(TAG_RE, (m, pre, t) => pre + t.toLowerCase());
     if (!holat) return;
     if (energy && !/\s:[1-5]$/.test(holat)) holat += ` :${energy}`;
 
