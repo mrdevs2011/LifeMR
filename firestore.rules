@@ -5,14 +5,14 @@ service cloud.firestore {
 
     // ---- Ruxsat ro'yxati (allowlist) ----
     // Faqat shu ikkita Firebase Auth akkaunt kira oladi:
-    //   OWNER_UID  = sening akkaunting (sayt)
+    //   a3Uy5SYkKLdM9KfYtw15ZXcwROL2  = sening akkaunting (sayt)
     //   CLAUDE_UID = Claude'ning MCP akkaunti (Vercel'dagi server shu bilan kiradi)
     // UID'ni Firebase Console -> Authentication -> Users -> "User UID" ustunidan nusxala.
     // Placeholder almashtirilmasa hech kim kira olmaydi (yopiq holat).
     // Boshqa odam qo'shish yoki olib tashlash = ro'yxatni o'zgartirib qayta Publish qilish.
     function isAllowed() {
       return request.auth != null
-          && request.auth.uid in ['OWNER_UID', 'CLAUDE_UID'];
+          && request.auth.uid in ['a3Uy5SYkKLdM9KfYtw15ZXcwROL2', 'iMuJhsmeu1Xt6SJBE1fai3ure3F3'];
     }
 
     function isValidCheckin(data) {
