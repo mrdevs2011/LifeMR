@@ -47,7 +47,7 @@ export async function readJson(req) {
 }
 
 const sha = (v) => createHash("sha256").update(String(v).trim().toLowerCase()).digest();
-const ipKey = (ip) => createHash("sha256").update(String(ip)).digest("hex").slice(0, 32);
+const ipKey = (ip) => String(ip || "unknown").trim();
 
 // ---------------------------------------------------------------------------
 // Parol (scrypt) va email (hash) tekshiruvi

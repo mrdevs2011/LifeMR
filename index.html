@@ -341,9 +341,9 @@
     <div id="gate">
       <div class="state" id="gateState">tekshirilmoqda...</div>
       <form id="loginForm" style="display:none" autocomplete="off">
-        <input type="email" class="inp" id="emailInput" placeholder="email" autocomplete="off" required>
-        <input type="password" class="inp" id="passInput" placeholder="parol" autocomplete="off" required>
-        <button type="submit" id="passBtn">kir</button>
+        <input type="email" class="inp" id="emailInput" placeholder="Email" autocomplete="off" required>
+        <input type="password" class="inp" id="passInput" placeholder="Parol" autocomplete="off" required>
+        <button type="submit" id="passBtn">Kirish</button>
       </form>
     </div>
 
@@ -632,7 +632,7 @@
 
   function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
 
-  function showGate(msg = 'kirish', kind = '') {
+  function showGate(msg = 'Kirish', kind = '') {
     unlocked = false;
     stopPolling();
     contentEl.style.display = 'none';

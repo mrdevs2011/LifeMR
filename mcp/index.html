@@ -21,6 +21,7 @@
     --text-dim: #7c8883;
     --text-faint: #4c5652;
     --accent: #7fe0a0;
+    --accent-dim: rgba(127, 224, 160, .1);
     --red: #f2726f;
     --radius: 14px;
     --radius-sm: 8px;
@@ -83,7 +84,31 @@
     background: var(--bg);
   }
 
-  h1 { font-size: 1.0625rem; font-weight: 700; margin: 0; }
+  h1 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 1.0625rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: .01em;
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 var(--accent-dim);
+    flex-shrink: 0;
+    animation: pulse 2.4s ease-out infinite;
+  }
+
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(127, 224, 160, .35); }
+    70%  { box-shadow: 0 0 0 7px rgba(127, 224, 160, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(127, 224, 160, 0); }
+  }
 
   .state { margin: 0 0 12px; min-height: 1.2em; font-size: .8125rem; color: var(--text-dim); }
   .state.err { color: var(--red); }
@@ -129,19 +154,19 @@
 <main class="page">
   <section class="card">
     <header class="topbar">
-      <span class="badge">MR</span>
-      <h1>MCP connector</h1>
+      <div class="badge">MR</div>
+      <h1><span>MRstatusMCP</span><span class="live-dot" aria-hidden="true"></span></h1>
     </header>
 
-    <p class="state" id="state" role="status" aria-live="polite">email va parolni kiriting</p>
+    <p class="state" id="state" role="status" aria-live="polite">Kirish</p>
 
     <form id="gate" autocomplete="off">
       <div class="field">
-        <input id="email" name="email" type="email" placeholder="email" autocomplete="off" required>
+        <input id="email" name="email" type="email" placeholder="Email" autocomplete="off" required>
       </div>
       <div class="field">
-        <input id="pass" name="password" type="password" placeholder="parol" autocomplete="off" required>
-        <button id="passBtn" type="submit">Ochish</button>
+        <input id="pass" name="password" type="password" placeholder="Parol" autocomplete="off" required>
+        <button id="passBtn" type="submit">Kirish</button>
       </div>
     </form>
 
