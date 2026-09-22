@@ -3,9 +3,9 @@
     { "source": "/", "destination": "/status", "permanent": false }
   ],
   "rewrites": [
-    { "source": "/schedule/?", "destination": "/index.html" },
-    { "source": "/status/?", "destination": "/index.html" },
-    { "source": "/login/?", "destination": "/index.html" },
-    { "source": "/mcp/login/?", "destination": "/mcp/index.html" }
+    { "source": "/schedule{/}?", "destination": "/index.html" },
+    { "source": "/status{/}?", "destination": "/index.html" },
+    { "source": "/login{/}?", "destination": "/index.html" },
+    { "source": "/mcp/login{/}?", "destination": "/mcp/index.html" }
   ]
 }
