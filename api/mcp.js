@@ -742,7 +742,7 @@ async function handleGetStats(a) {
 
 async function handleDeleteStatus(a) {
   const id = typeof a.id === "string" ? a.id.trim() : "";
-  if (!id) throw new InputError("id is required");
+  if (!id || !/^[A-Za-z0-9_-]{1,64}$/.test(id)) throw new InputError("id noto'g'ri");
   const removed = await deleteCheckin(id);
   return textResult({ ok: true, deleted: removed });
 }

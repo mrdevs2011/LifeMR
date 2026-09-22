@@ -1,10 +1,13 @@
 // api/debug.js: environment va dependencies check
-// DELETE bu faylni production'da qo'y olmang!!!
+// Faqat login qilgan (session cookie bor) holatda ishlaydi — hech qanday qiymat namunasi qaytarilmaydi.
 
-export default function handler(req, res) {
-  // CORS
+import { requireSession } from "./_lib.js";
+
+export default async function handler(req, res) {
+  if (!(await requireSession(req, res))) return;
+
   res.setHeader("Content-Type", "application/json; charset=utf-8");
-  
+
   const missing = [];
   const configured = [];
 
@@ -19,13 +22,8 @@ export default function handler(req, res) {
   ];
 
   for (const v of vars) {
-    if (!process.env[v]) {
-      missing.push(v);
-    } else {
-      const val = process.env[v];
-      const masked = val.length > 10 ? val.slice(0, 5) + "..." + val.slice(-5) : "***";
-      configured.push({ name: v, length: val.length, sample: masked });
-    }
+    if (!process.env[v]) missing.push(v);
+    else configured.push(v); // faqat "bor" deb belgilanadi, qiymat yoki uzunlik ko'rsatilmaydi
   }
 
   res.statusCode = missing.length > 0 ? 400 : 200;

@@ -21,6 +21,7 @@ Hamma narsa **serverdan** o'tadi: sayt ham, `/mcp` sahifasi ham, Claude ham.
 - `tools/hash-password.mjs`: parolingdan `OWNER_PASS_HASH` yaratadi (`node tools/hash-password.mjs`).
 - `firestore.rules`: Firestore qoidalari (UID ruxsat ro'yxati). Firebase Console'da alohida Publish qilinadi.
 - `mcp/index.html`: connector URL sahifasi (`/mcp`).
+- `vercel.json`: `/` avtomatik `/status`ga o'tadi (redirect, manzil ham shunga almashadi). `/schedule`, `/status`, `/login` esa `index.html`ga qayta yo'naltiriladi (rewrite) — alohida sahifa emas, bitta sayt, faqat manzil bo'yicha tegishli holat ochiladi (`showTab`/`tabFromPath`, `index.html` ichida). Tab bosilganda manzil ham mos yangilanadi (`history.pushState`); kirmagan/chiqib ketgan holatda manzil `/login`ga o'zi almashadi (`replaceState`, `showGate` ichida) — sahifa qayta yuklanmaydi. `/mcp/login` xuddi `/mcp`ning o'zi (rewrite bilan): u allaqachon login sahifasi, sessiyasiz — har safar qayta kirasan.
 - `instruction.md`: Claude Preferences'ga qo'yiladigan QISQA matn (har accountga bir marta).
 - `instruction-tests.md`: sinov ro'yxati (faqat o'zing uchun).
 
@@ -90,6 +91,7 @@ Claude'ning suhbat uslubi va barcha qoidalari `api/_guide.js` ichida.
 - Jadvalda kodga yozilgan qiymat yo'q: vaqtlar ham, dars matnlari ham faqat Firestore'dan o'qiladi. Katak bo'sh bo'lsa, bo'sh ko'rinadi (placeholder ham yo'q). Boshlang'ich (seed) vaqtlar olib tashlangan: bo'sh ustunni o'zing yozasan, yoki Claude'ga `set_schedule` (`bell_times`) bilan yozdirasan.
 - Vaqtlar `jadval/main` ichidagi `cells` xaritasida `start_<n>` / `end_<n>` kalitlari bilan turadi. `api/jadval.js` ham, `api/mcp.js` ham shu kalitlarni bilishi shart (ikkalasi ham butun xaritani almashtirib yozadi). Claude `get_schedule` da har dars vaqtini, `bell_times` ni va hisoblangan `break_after_min` (saytdagi `+5`) ni ko'radi. `set_schedule` esa kataklar (`changes`) bilan birga vaqtlarni ham (`bell_times`: dars raqami + `start`/`end`, masalan `8:50`) o'zgartira oladi. Berilmagan maydon o'zgarmaydi, bo'sh matn tozalaydi, tugash boshlanishdan keyin bo'lmasa rad etadi.
 - `firestore.rules` dagi `cells.size()` chegarasi 64 (48 katak + 16 vaqt kaliti). Rules'ni Firebase Console'da alohida **Publish** qilish shart, aks holda jadval to'lganda saqlash rad etiladi.
+- **Realtime yangilanish:** jadval tab'i ochiq tursa, sayt `api/jadval-stream.js` bilan SSE ulanadi (`GET /api/jadval-stream`). Server Firestore'ni ~350ms da bir tekshiradi va faqat hujjat o'zgarganda push qiladi — Claude `set_schedule` chaqirsa, deyarli darhol ko'rinadi. Xavfsizlik modeliga tegmaydi (brauzer baribir faqat shu serverга, server esa Firestore'ga kiradi, sessiya + IP bloki bir xil tekshiriladi), yangi bog'liqlik ham qo'shilmagan. Vercel funksiya vaqt chegarasi tufayli har ulanish ~8.5s dan keyin o'zi yopiladi; brauzer (`retry: 300`) darhol qayta ulanadi, shuning uchun sezilmaydi. SSE ishlamasa (eski brauzer/proksi), 4 soniyalik zaxira polling ishga tushadi.
 
 ## Xavfsizlik eslatmalari
 
