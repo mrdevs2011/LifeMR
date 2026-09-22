@@ -1771,7 +1771,6 @@
     const p = location.pathname.replace(/\/+$/, '');
     if (p === '/login' || p === '') history.replaceState(null, '', '/status');
     showTab(tabFromPath(), false); // /schedule yoki /status bilan kirilgan bo'lsa, shu tab ochiladi
-    runBootSequence();
     // "jonli" yangilanish: sahifa ochiq va ko'rinib turgan paytda har 10 soniyada
     pollTimer = setInterval(() => { if (!document.hidden) loadLog(); }, 10000);
   }
