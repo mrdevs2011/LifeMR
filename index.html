@@ -487,7 +487,7 @@
 
   /* ---- dars jadvali: ixcham grid, katakka bosib to'g'ridan-to'g'ri tahrirlanadi ---- */
   .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -3px; }
-  table.jadval { border-collapse: collapse; width: 100%; min-width: 600px; font-size: .82rem; }
+  table.jadval { border-collapse: collapse; width: 100%; min-width: 920px; font-size: .82rem; table-layout: fixed; }
   table.jadval th, table.jadval td { border: 1px solid var(--border-soft); padding: 0; }
   table.jadval th {
     background: rgba(255, 255, 255, .02); color: var(--text-dim); font-weight: 600;
@@ -499,7 +499,7 @@
     background: rgba(255, 255, 255, .012); font-variant-numeric: tabular-nums; font-size: .76rem;
   }
   .cell {
-    min-width: 78px; padding: 7px 8px; color: var(--text); outline: none; cursor: text;
+    min-width: 120px; padding: 7px 8px; color: var(--text); outline: none; cursor: text;
     white-space: pre-wrap; word-break: break-word; line-height: 1.4; min-height: 1.4em;
     transition: background-color .12s ease;
   }
@@ -655,7 +655,7 @@
           <table class="jadval">
             <thead>
               <tr>
-                <th></th>
+                <th style="width:24px"></th>
                 <th class="timecol" title="Lesson start and end">Time</th>
                 <th title="Monday">Mon</th>
                 <th title="Tuesday">Tue</th>
