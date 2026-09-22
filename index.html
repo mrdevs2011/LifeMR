@@ -59,6 +59,25 @@
 
   ::selection { background: var(--accent-dim); color: var(--accent); }
 
+  /* ---- kirgandan keyingi qisqa "yuklanish" ko'rinishi: terminal qanday ochilsa, shunday ---- */
+  .boot-seq {
+    position: fixed; inset: 0; z-index: 999;
+    background: var(--bg);
+    padding: clamp(16px, 4vw, 40px) clamp(10px, 3vw, 20px);
+    font-family: var(--mono); font-size: .82rem; color: var(--accent);
+    opacity: 1; transition: opacity .22s var(--ease);
+  }
+  .boot-seq[hidden] { display: none; }
+  .boot-seq.boot-out { opacity: 0; }
+  .boot-lines div { line-height: 1.7; }
+  .boot-lines .dim { color: var(--text-faint); }
+  .boot-cursor {
+    display: inline-block; width: 6px; height: 1em; background: var(--accent);
+    margin-left: 2px; vertical-align: -2px; animation: bootBlink .9s steps(1) infinite;
+  }
+  @keyframes bootBlink { 50% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .boot-seq { display: none !important; } }
+
   a, button, input, .day-row { -webkit-tap-highlight-color: transparent; }
 
   :focus-visible {
@@ -528,6 +547,11 @@
   }
   .tab:hover { color: var(--text-dim); }
   .tab.active { color: var(--accent); }
+  .tab-key {
+    margin-left: 6px; font-size: .68em; color: var(--text-faint); opacity: .55;
+    transition: color .2s var(--ease), opacity .2s var(--ease);
+  }
+  .tab.active .tab-key { color: var(--accent); opacity: .6; }
   .tab-line { height: 1px; background: var(--border-soft); margin: 0 14px; }
 
   /* ---- tab panellari: almashganda qattiq sakramasdan, silliq so'nib-yonadi ---- */
@@ -593,6 +617,9 @@
 </style>
 </head>
 <body>
+<div class="boot-seq" id="bootSeq" hidden aria-hidden="true">
+  <div class="boot-lines" id="bootLines"></div>
+</div>
 <div class="page">
   <div class="card">
     <div class="topbar">
@@ -622,8 +649,8 @@
     <div id="content">
       <div class="tabs" id="tabs">
         <div class="tab-indicator" id="tabIndicator"></div>
-        <button type="button" class="tab active" data-tab="status">status</button>
-        <button type="button" class="tab" data-tab="jadval">schedule</button>
+        <button type="button" class="tab active" data-tab="status"><span class="tab-label">status</span><span class="tab-key">1</span></button>
+        <button type="button" class="tab" data-tab="jadval"><span class="tab-label">schedule</span><span class="tab-key">2</span></button>
       </div>
       <div class="tab-line"></div>
 
@@ -890,8 +917,9 @@
     if (sub) sub.textContent = t('send');
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach(tb => {
-      if (tb.dataset.tab === 'status') tb.textContent = t('status');
-      if (tb.dataset.tab === 'jadval') tb.textContent = t('schedule');
+      const label = tb.querySelector('.tab-label') || tb;
+      if (tb.dataset.tab === 'status') label.textContent = t('status');
+      if (tb.dataset.tab === 'jadval') label.textContent = t('schedule');
     });
     const email = document.getElementById('emailInput');
     if (email) email.placeholder = t('email');
@@ -1362,6 +1390,42 @@
 
   const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // Kirgach ko'rinadigan qisqa terminal-uslubidagi ochilish: 3 qator harf-baharf "yoziladi",
+  // keyin so'nib, tayyor dashboard'ni ochib beradi. Faqat bezak — hech narsani to'sib turmaydi,
+  // dashboard shu orada allaqachon orqada tayyorlanadi.
+  const bootSeqEl = document.getElementById('bootSeq');
+  const bootLinesEl = document.getElementById('bootLines');
+  function typeBootLine(text, speed) {
+    return new Promise((resolve) => {
+      const lineEl = document.createElement('div');
+      bootLinesEl.appendChild(lineEl);
+      let i = 0;
+      (function tick() {
+        const cur = document.createElement('span');
+        cur.className = 'boot-cursor';
+        lineEl.textContent = text.slice(0, i);
+        lineEl.appendChild(cur);
+        i++;
+        if (i <= text.length) setTimeout(tick, speed);
+        else resolve();
+      })();
+    });
+  }
+  async function runBootSequence() {
+    if (REDUCE_MOTION || !bootSeqEl) { if (bootSeqEl) bootSeqEl.hidden = true; return; }
+    bootLinesEl.innerHTML = '';
+    bootSeqEl.hidden = false;
+    bootSeqEl.classList.remove('boot-out');
+    await typeBootLine('$ auth ok', 11);
+    await new Promise((r) => setTimeout(r, 70));
+    await typeBootLine('$ mounting ~/status', 10);
+    await new Promise((r) => setTimeout(r, 70));
+    await typeBootLine('$ ready', 15);
+    await new Promise((r) => setTimeout(r, 160));
+    bootSeqEl.classList.add('boot-out');
+    setTimeout(() => { bootSeqEl.hidden = true; }, 240);
+  }
+
   // Aktiv tab tugmasining haqiqiy joyi/o'lchamiga qarab orqa fondagi indikatorni sirg'anib olib boradi.
   function moveTabIndicator(name) {
     const ind = document.getElementById('tabIndicator');
@@ -1421,6 +1485,18 @@
     const b = e.target.closest('.tab');
     if (!b) return;
     showTab(b.dataset.tab, true);
+  });
+
+  // Klaviatura yorlig'i: "1" -> status, "2" -> schedule. Faqat hech qanday input/textarea'da
+  // yozayotgan bo'lmasang va Ctrl/Cmd/Alt bosilmagan bo'lsa (brauzerning o'z Ctrl+1 kabi
+  // yorliqlariga tegilmaydi).
+  document.addEventListener('keydown', (e) => {
+    if (!unlocked || e.ctrlKey || e.metaKey || e.altKey) return;
+    const el = document.activeElement;
+    const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+    if (typing) return;
+    if (e.key === '1') { e.preventDefault(); showTab('status', true); }
+    else if (e.key === '2') { e.preventDefault(); showTab('jadval', true); }
   });
 
   // Orqaga/oldinga tugmasi: manzil o'zgarsa (masalan /status <-> /schedule) mos tab ko'rsatiladi.
@@ -1582,6 +1658,7 @@
     contentEl.style.display = 'none';
     gateEl.style.display = 'flex';
     loginFormEl.style.display = 'flex';
+    if (bootSeqEl) { bootSeqEl.hidden = true; bootSeqEl.classList.remove('boot-out'); }
     gateStateEl.textContent = msg;
     gateStateEl.className = 'state' + (kind ? ' ' + kind : '');
     logEl.innerHTML = '';
@@ -1694,6 +1771,7 @@
     const p = location.pathname.replace(/\/+$/, '');
     if (p === '/login' || p === '') history.replaceState(null, '', '/status');
     showTab(tabFromPath(), false); // /schedule yoki /status bilan kirilgan bo'lsa, shu tab ochiladi
+    runBootSequence();
     // "jonli" yangilanish: sahifa ochiq va ko'rinib turgan paytda har 10 soniyada
     pollTimer = setInterval(() => { if (!document.hidden) loadLog(); }, 10000);
   }
