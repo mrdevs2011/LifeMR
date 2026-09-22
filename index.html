@@ -31,6 +31,7 @@
     --radius: 6px;
     --radius-sm: 4px;
     --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --ease: cubic-bezier(.22, 1, .36, 1);
   }
 
   * { box-sizing: border-box; }
@@ -172,7 +173,7 @@
   }
   .inp::placeholder { color: var(--text-faint); }
   .inp:hover { border-color: var(--text-faint); }
-  .inp:focus { border-color: var(--accent); }
+  .inp:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 
   button {
     background: var(--accent-dim);
@@ -185,11 +186,11 @@
     border-radius: var(--radius-sm);
     cursor: pointer;
     flex-shrink: 0;
-    transition: background-color .15s ease, transform .08s ease;
+    transition: background-color .18s var(--ease), color .18s var(--ease), box-shadow .18s var(--ease), transform .08s var(--ease);
   }
-  button:hover { background: var(--accent); color: #08130c; }
-  button:active { transform: scale(.97); }
-  button:disabled { opacity: .4; cursor: default; transform: none; }
+  button:hover { background: var(--accent); color: #08130c; box-shadow: 0 0 0 3px var(--accent-dim); }
+  button:active { transform: scale(.97); box-shadow: none; }
+  button:disabled { opacity: .4; cursor: default; transform: none; box-shadow: none; }
 
   #loginForm { flex-direction: column; margin: 0; }
   .linkbtn {
@@ -329,20 +330,23 @@
 
   /* ---- odat qatlami: kunlik ritm, eslatma, tez yozish ---- */
   .week { margin: 0 0 10px; }
-  .week-dots { display: flex; gap: 5px; }
-  .wd { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; min-width: 0; }
+  .week-dots { display: flex; gap: 5px; position: relative; padding-top: 2px; }
+  .week-line { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: 0; }
+  .week-line path { fill: none; stroke: var(--border); stroke-width: 1.5; transition: stroke .25s ease; }
+  .week-line path.on { stroke: var(--accent); }
+  .wd { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; min-width: 0; position: relative; z-index: 1; }
   .wd i {
-    width: 100%; max-width: 34px; height: 6px; border-radius: 3px;
-    background: var(--border-soft); border: 1px solid var(--border);
-    transition: background-color .25s ease, border-color .25s ease;
+    display: block; width: 11px; height: 11px; border-radius: 50%; box-sizing: border-box;
+    background: var(--bg); border: 1.5px solid var(--border);
+    transition: background-color .25s ease, border-color .25s ease, box-shadow .2s ease;
   }
   .wd.on i { background: var(--accent); border-color: var(--accent); }
   .wd.today i { border-color: var(--text-dim); }
-  .wd.today.on i { border-color: var(--accent); }
+  .wd.today.on i { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
   .wd.pop i { animation: pop .5s ease-out; }
   .wd span { font-size: .6rem; color: var(--text-faint); }
   .wd.today span { color: var(--text-dim); }
-  @keyframes pop { 0% { transform: scaleY(1); } 40% { transform: scaleY(1.9); } 100% { transform: scaleY(1); } }
+  @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.6); } 100% { transform: scale(1); } }
   .week-note { margin-top: 5px; font-size: .7rem; color: var(--text-dim); min-height: 1.2em; }
 
   .nudge {
@@ -506,16 +510,32 @@
 
   #content { display: none; }
 
-  /* ---- tab'lar ---- */
-  .tabs { display: flex; gap: 3px; padding: 10px 14px 0; }
+  /* ---- tab'lar: aktiv tab ostida silliq sirg'anuvchi indikator ---- */
+  .tabs { display: flex; gap: 3px; padding: 10px 14px 0; position: relative; }
+  .tab-indicator {
+    position: absolute; left: 0; top: 0; z-index: 0; width: 0; height: 0;
+    background: rgba(127, 224, 160, .07); border: 1px solid var(--border-soft); border-bottom-color: transparent;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    transition: transform .32s var(--ease), width .32s var(--ease), height .32s var(--ease);
+    pointer-events: none;
+  }
   .tab {
+    position: relative; z-index: 1;
     background: transparent; border: 1px solid transparent; color: var(--text-faint);
     font-family: inherit; font-size: .8rem; font-weight: 600; letter-spacing: .01em;
     padding: 6px 13px; border-radius: var(--radius-sm) var(--radius-sm) 0 0; cursor: pointer;
+    transition: color .2s var(--ease);
   }
   .tab:hover { color: var(--text-dim); }
-  .tab.active { color: var(--accent); background: rgba(127, 224, 160, .06); border-color: var(--border-soft); border-bottom-color: transparent; }
+  .tab.active { color: var(--accent); }
   .tab-line { height: 1px; background: var(--border-soft); margin: 0 14px; }
+
+  /* ---- tab panellari: almashganda qattiq sakramasdan, silliq so'nib-yonadi ---- */
+  #panelStatus, #panelJadval { transition: opacity .16s var(--ease); }
+  #panelStatus.panel-fade, #panelJadval.panel-fade { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .tab-indicator, #panelStatus, #panelJadval { transition: none !important; }
+  }
 
   /* ---- dars jadvali: ixcham grid, katakka bosib to'g'ridan-to'g'ri tahrirlanadi ---- */
   .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -3px; scrollbar-width: none; -ms-overflow-style: none; }
@@ -601,6 +621,7 @@
 
     <div id="content">
       <div class="tabs" id="tabs">
+        <div class="tab-indicator" id="tabIndicator"></div>
         <button type="button" class="tab active" data-tab="status">status</button>
         <button type="button" class="tab" data-tab="jadval">schedule</button>
       </div>
@@ -1010,6 +1031,41 @@
 
   let prevTodayHas = null; // bugungi nuqta yangi to'lganda bir marta animatsiya qilish uchun
 
+  let lastHabitDays = null; // resize'da qayta chizish uchun
+
+  // Doiralar markazini bog'lovchi SVG chiziq. Ikkala qo'shni kun ham "on" bo'lsa —
+  // segment accent rangda (streak ko'rinishi), aks holda xira rangda.
+  function drawWeekLine(container, days) {
+    lastHabitDays = days;
+    const svg = container.querySelector('#weekLine');
+    const dots = [...container.querySelectorAll('.wd i')];
+    if (!svg || dots.length < 2) return;
+    const cRect = container.getBoundingClientRect();
+    if (!cRect.width) return; // hali render bo'lmagan (hidden)
+    const pts = dots.map(el => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2 - cRect.left, y: r.top + r.height / 2 - cRect.top };
+    });
+    svg.setAttribute('width', cRect.width);
+    svg.setAttribute('height', cRect.height);
+    let paths = '';
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const on = days[i].on && days[i + 1].on ? ' on' : '';
+      paths += `<path class="${on.trim()}" d="M${a.x} ${a.y} L${b.x} ${b.y}"/>`;
+    }
+    svg.innerHTML = paths;
+  }
+
+  let weekLineResizeT = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(weekLineResizeT);
+    weekLineResizeT = setTimeout(() => {
+      const dotsEl = document.getElementById('weekDots');
+      if (lastHabitDays && dotsEl) drawWeekLine(dotsEl, lastHabitDays);
+    }, 120);
+  });
+
   function updateHabit(docs) {
     const weekEl = document.getElementById('week');
     const dotsEl = document.getElementById('weekDots');
@@ -1034,22 +1090,23 @@
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today); d.setDate(d.getDate() - i);
-      days.push({ key: ymd(d), wd: WD[d.getDay()], isToday: i === 0 });
+      const key = ymd(d);
+      days.push({ key, wd: WD[d.getDay()], isToday: i === 0, on: (perDay.get(key) || 0) > 0 });
     }
-    const todayHas = (perDay.get(days[6].key) || 0) > 0;
-    dotsEl.innerHTML = days.map(x => {
-      const on = (perDay.get(x.key) || 0) > 0;
-      const pop = x.isToday && on && prevTodayHas === false ? ' pop' : '';
-      return `<div class="wd${on ? ' on' : ''}${x.isToday ? ' today' : ''}${pop}" title="${x.key}"><i></i><span>${x.wd}</span></div>`;
+    const todayHas = days[6].on;
+    weekEl.hidden = false;
+    dotsEl.innerHTML = '<svg class="week-line" id="weekLine"></svg>' + days.map(x => {
+      const pop = x.isToday && x.on && prevTodayHas === false ? ' pop' : '';
+      return `<div class="wd${x.on ? ' on' : ''}${x.isToday ? ' today' : ''}${pop}" title="${x.key}"><i></i><span>${x.wd}</span></div>`;
     }).join('');
     prevTodayHas = todayHas;
+    drawWeekLine(dotsEl, days);
 
     const n = days.filter(x => perDay.get(x.key)).length;
     const vals = days.flatMap(x => marks.get(x.key) || []);
     let note = `${n}/7 days`;
     if (vals.length >= 3) note += ` · energy ~${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1)}`;
     noteEl.textContent = note;
-    weekEl.hidden = false;
 
     // eslatma: faqat sening tanish paytlaringda (maktabdan keyin, kech kechqurun), bosimsiz
     let last = null;
@@ -1303,13 +1360,51 @@
     jadvalTimer = setTimeout(saveJadval, 5000);
   }
 
+  const REDUCE_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Aktiv tab tugmasining haqiqiy joyi/o'lchamiga qarab orqa fondagi indikatorni sirg'anib olib boradi.
+  function moveTabIndicator(name) {
+    const ind = document.getElementById('tabIndicator');
+    const btn = [...tabsEl.querySelectorAll('.tab')].find(t => t.dataset.tab === name);
+    if (!ind || !btn) return;
+    const wrapRect = tabsEl.getBoundingClientRect();
+    const r = btn.getBoundingClientRect();
+    ind.style.width = r.width + 'px';
+    ind.style.height = r.height + 'px';
+    ind.style.transform = `translate(${r.left - wrapRect.left}px, ${r.top - wrapRect.top}px)`;
+  }
+
+  // Panel almashganda qattiq sakramasdan: eskisi so'nadi -> yashiriladi -> yangisi yonadi.
+  function switchPanel(fromEl, toEl) {
+    if (!toEl || fromEl === toEl) { if (toEl) toEl.hidden = false; return; }
+    if (REDUCE_MOTION) { if (fromEl) fromEl.hidden = true; toEl.hidden = false; return; }
+    const enter = () => {
+      toEl.hidden = false;
+      toEl.classList.add('panel-fade');
+      requestAnimationFrame(() => requestAnimationFrame(() => toEl.classList.remove('panel-fade')));
+    };
+    if (!fromEl || fromEl.hidden) { enter(); return; }
+    fromEl.classList.add('panel-fade');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      fromEl.classList.remove('panel-fade');
+      fromEl.hidden = true;
+      fromEl.removeEventListener('transitionend', finish);
+      enter();
+    };
+    fromEl.addEventListener('transitionend', finish, { once: true });
+    setTimeout(finish, 200); // zaxira: transitionend kelmay qolsa ham osilib qolmasin
+  }
+
   // name: 'status' | 'jadval'. push=true bo'lsa URL ham mos ravishda /status yoki /schedule bo'ladi
   // (bitta sahifa, faqat manzil almashadi — history.pushState, qayta yuklanmaydi).
   function showTab(name, push) {
     tabsEl.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    moveTabIndicator(name);
     const showJadval = name === 'jadval';
-    panelStatusEl.hidden = showJadval;
-    panelJadvalEl.hidden = !showJadval;
+    switchPanel(showJadval ? panelStatusEl : panelJadvalEl, showJadval ? panelJadvalEl : panelStatusEl);
     pathEl.textContent = showJadval ? '~/schedule' : '~/status';
     if (showJadval) { loadJadval(jadvalLoaded); startJadvalStream(); }
     else stopJadvalStream();
@@ -1330,6 +1425,13 @@
 
   // Orqaga/oldinga tugmasi: manzil o'zgarsa (masalan /status <-> /schedule) mos tab ko'rsatiladi.
   window.addEventListener('popstate', () => { if (unlocked) showTab(tabFromPath(), false); });
+
+  // Ekran o'lchami o'zgarsa (masalan mobil burilsa) indikator joyidan siljib qolmasin.
+  let tabResizeT = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(tabResizeT);
+    tabResizeT = setTimeout(() => { if (unlocked) moveTabIndicator(tabFromPath()); }, 120);
+  });
 
   function readJadvalCells() {
     const cells = {};
@@ -1493,8 +1595,11 @@
     jadvalDirty = false;
     tabsEl.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'status'));
     panelStatusEl.hidden = false;
+    panelStatusEl.classList.remove('panel-fade');
     panelJadvalEl.hidden = true;
+    panelJadvalEl.classList.remove('panel-fade');
     pathEl.textContent = '~/status';
+    moveTabIndicator('status');
     // Kirmagansan/chiqib ketding — manzil ham shuni ko'rsatsin. Bloklangan ekranga (showBlocked) tegilmaydi.
     if (location.pathname.replace(/\/+$/, '') !== '/login') history.replaceState(null, '', '/login');
   }
