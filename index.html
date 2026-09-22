@@ -498,6 +498,13 @@
     color: var(--text-faint); text-align: center; width: 24px;
     background: rgba(255, 255, 255, .012); font-variant-numeric: tabular-nums; font-size: .76rem;
   }
+  /* mobil/tablet: gorizontal scroll paytida raqam va vaqt ustuni joyida qolsin */
+  @media (max-width: 760px) {
+    td.rownum, th:first-child { position: sticky; left: 0; z-index: 2; }
+    th.timecol, td.timecell { position: sticky; left: 24px; z-index: 2; }
+    td.rownum, td.timecell { background: var(--panel); }
+    th:first-child, th.timecol { background: var(--panel); }
+  }
   .cell {
     min-width: 120px; padding: 7px 8px; color: var(--text); outline: none; cursor: text;
     white-space: pre-wrap; word-break: break-word; line-height: 1.4; min-height: 1.4em;
