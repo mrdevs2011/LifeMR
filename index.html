@@ -296,7 +296,7 @@
     opacity: 1;
     pointer-events: auto;
   }
-  .entry-del:hover { background: var(--red); color: #fff; }
+  .entry-del:hover, .entry-del:focus-visible { background: transparent; color: var(--red); }
   .entry-del[disabled] { pointer-events: none; opacity: .5; }
   /* teginish bilan boshqariladigan qurilmada hover yo'q, shuning uchun doim ko'rinsin */
   @media (hover: none) {
