@@ -486,7 +486,8 @@
   .tab-line { height: 1px; background: var(--border-soft); margin: 0 14px; }
 
   /* ---- dars jadvali: ixcham grid, katakka bosib to'g'ridan-to'g'ri tahrirlanadi ---- */
-  .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -3px; }
+  .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -3px; scrollbar-width: none; -ms-overflow-style: none; }
+  .grid-wrap::-webkit-scrollbar { display: none; height: 0; }
   table.jadval { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 920px; font-size: .82rem; table-layout: fixed; }
   table.jadval th, table.jadval td { border: 1px solid var(--border-soft); padding: 0; }
   table.jadval th {
@@ -499,8 +500,8 @@
     background: var(--panel); font-variant-numeric: tabular-nums; font-size: .76rem;
   }
   /* raqam va vaqt ustuni gorizontal scrollda doimo joyida qotib tursin (mobil ham, desktop ham) */
-  td.rownum, thead th:first-child { position: sticky; left: 0; z-index: 2; background: var(--panel); }
-  th.timecol, td.timecell { position: sticky; left: 24px; z-index: 2; background: var(--panel); }
+  table.jadval td.rownum, table.jadval thead th:first-child { position: sticky; left: 0; z-index: 3; background: var(--panel); }
+  table.jadval th.timecol, table.jadval td.timecell { position: sticky; left: 24px; z-index: 3; background: var(--panel); }
   .cell {
     min-width: 120px; padding: 7px 8px; color: var(--text); outline: none; cursor: text;
     white-space: pre-wrap; word-break: break-word; line-height: 1.4; min-height: 1.4em;
