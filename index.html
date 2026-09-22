@@ -487,7 +487,7 @@
 
   /* ---- dars jadvali: ixcham grid, katakka bosib to'g'ridan-to'g'ri tahrirlanadi ---- */
   .grid-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -3px; }
-  table.jadval { border-collapse: collapse; width: 100%; min-width: 920px; font-size: .82rem; table-layout: fixed; }
+  table.jadval { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 920px; font-size: .82rem; table-layout: fixed; }
   table.jadval th, table.jadval td { border: 1px solid var(--border-soft); padding: 0; }
   table.jadval th {
     background: rgba(255, 255, 255, .02); color: var(--text-dim); font-weight: 600;
@@ -496,15 +496,11 @@
   }
   td.rownum {
     color: var(--text-faint); text-align: center; width: 24px;
-    background: rgba(255, 255, 255, .012); font-variant-numeric: tabular-nums; font-size: .76rem;
+    background: var(--panel); font-variant-numeric: tabular-nums; font-size: .76rem;
   }
-  /* mobil/tablet: gorizontal scroll paytida raqam va vaqt ustuni joyida qolsin */
-  @media (max-width: 760px) {
-    td.rownum, th:first-child { position: sticky; left: 0; z-index: 2; }
-    th.timecol, td.timecell { position: sticky; left: 24px; z-index: 2; }
-    td.rownum, td.timecell { background: var(--panel); }
-    th:first-child, th.timecol { background: var(--panel); }
-  }
+  /* raqam va vaqt ustuni gorizontal scrollda doimo joyida qotib tursin (mobil ham, desktop ham) */
+  td.rownum, thead th:first-child { position: sticky; left: 0; z-index: 2; background: var(--panel); }
+  th.timecol, td.timecell { position: sticky; left: 24px; z-index: 2; background: var(--panel); }
   .cell {
     min-width: 120px; padding: 7px 8px; color: var(--text); outline: none; cursor: text;
     white-space: pre-wrap; word-break: break-word; line-height: 1.4; min-height: 1.4em;
@@ -516,7 +512,7 @@
   .cell.tcell:empty { background: rgba(255, 255, 255, .018); }
   /* vaqt ustuni: tepada boshlanish, pastda tugash (ikkalasi ham oddiy tahrirlanadigan katak), yonida hisoblangan tanaffus */
   th.timecol { width: 92px; }
-  td.timecell { background: rgba(255, 255, 255, .012); }
+  td.timecell { background: var(--panel); }
   .timebox { display: flex; align-items: center; justify-content: center; gap: 3px; padding: 3px 6px; }
   .timebox .stack { display: flex; flex-direction: column; }
   .cell.tcell {
