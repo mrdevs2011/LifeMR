@@ -1349,12 +1349,12 @@
     }
   }
 
-  // Jadval tab'i ochiq tursa, har 10 soniyada jimgina yangilanadi (Claude o'zgartirsa ko'rinadi).
+  // Jadval tab'i ochiq tursa, 1.5 soniyada bir marta jimgina yangilanadi (Claude o'zgartirsa tez ko'rinadi).
   setInterval(() => {
     if (!unlocked || panelJadvalEl.hidden || document.hidden) return;
     if (jadvalDirty || jadvalSaving || document.activeElement?.closest?.('.cell')) return;
     loadJadval(true);
-  }, 10000);
+  }, 1500);
 
   async function saveJadval() {
     if (jadvalSaving) { jadvalTimer = setTimeout(saveJadval, 1000); return; }

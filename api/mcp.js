@@ -155,10 +155,14 @@ const TOOLS = [
   {
     name: "set_schedule",
     title: "Edit class schedule",
-    description: `Edits the user's weekly class schedule. Only call when the user explicitly asks to add, change or clear lessons or lesson times; if the day or lesson number is unclear, ask first. Two kinds of edits, in one call or separately (at least one is required): (1) changes: each sets one cell (day mon..sat + lesson number 1-${SCHEDULE_ROWS}) to text; an empty string clears that cell. Max ${SCHEDULE_CELL_MAX} chars per cell. (2) bell_times: the time column, one entry per lesson number (1-${SCHEDULE_ROWS}) with start and/or end as H:MM or HH:MM (24h, e.g. "8:50"); an empty string clears that time, an omitted field stays untouched. Times are shared by all days (same lesson number = same time every day). The break between lessons is not stored, it is computed from end and next start. Cells and times not mentioned stay untouched. Returns the affected days and bell_times after saving.`,
+    description: `Edits the user's weekly class schedule. Only call when the user explicitly asks to add, change or clear lessons or lesson times; if the day or lesson number is unclear, ask first. Controlled by "mode" (default "cell"): "cell" touches only the exact cells listed in changes, everything else stays as is — use for one lesson or a handful of scattered edits. "day" replaces one whole day: every lesson in changes must share the same day, and every other lesson slot (1-${SCHEDULE_ROWS}) for that day is cleared first — use when rewriting a full day from scratch. "all" replaces the entire week: every day's lesson cells are cleared first, then changes is applied — use only when the user wants the whole timetable rewritten; anything not included in changes ends up empty, so pass every lesson the user wants kept. bell_times (the time column) is independent of mode and can be included with any of them: one entry per lesson number (1-${SCHEDULE_ROWS}) with start and/or end as H:MM or HH:MM (24h, e.g. "8:50"); an empty string clears that time, an omitted field stays untouched. Times are shared by all days (same lesson number = same time every day) and are never cleared by "day"/"all" mode. The break between lessons is not stored, it is computed from end and next start. Returns the affected days and bell_times after saving.`,
     inputSchema: {
       type: "object",
       properties: {
+        mode: {
+          type: "string", enum: ["cell", "day", "all"],
+          description: `How changes is applied. "cell" (default): only listed cells change. "day": rewrites one whole day (all changes must share that day; its other lessons are cleared). "all": rewrites the whole week (all days are cleared first).`,
+        },
         changes: {
           type: "array",
           minItems: 1,
@@ -178,7 +182,7 @@ const TOOLS = [
           type: "array",
           minItems: 1,
           maxItems: SCHEDULE_ROWS,
-          description: "Lesson times (the time column). Same shape get_schedule returns in bell_times.",
+          description: "Lesson times (the time column). Same shape get_schedule returns in bell_times. Independent of mode.",
           items: {
             type: "object",
             properties: {
@@ -883,11 +887,19 @@ async function handleGetSchedule(a) {
 }
 
 async function handleSetSchedule(a) {
+  const mode = typeof a.mode === "string" && a.mode.trim() ? a.mode.trim().toLowerCase() : "cell";
+  if (!["cell", "day", "all"].includes(mode)) {
+    throw new InputError('mode noto\'g\'ri. Kerak: "cell", "day" yoki "all"');
+  }
+
   const changes = a.changes === undefined || a.changes === null ? [] : a.changes;
   const times = a.bell_times === undefined || a.bell_times === null ? [] : a.bell_times;
   if (!Array.isArray(changes)) throw new InputError("changes must be an array");
   if (!Array.isArray(times)) throw new InputError("bell_times must be an array");
   if (!changes.length && !times.length) throw new InputError("changes or bell_times is required (non-empty array)");
+  if (mode !== "cell" && !changes.length) {
+    throw new InputError(`mode="${mode}" uchun changes kerak (qaysi darslar qolishini ko'rsating)`);
+  }
   if (changes.length > SCHEDULE_DAYS.length * SCHEDULE_ROWS) throw new InputError("too many changes");
   if (times.length > SCHEDULE_ROWS) throw new InputError("too many bell_times");
 
@@ -909,6 +921,19 @@ async function handleSetSchedule(a) {
     norm.push({ day, lesson, text });
   }
 
+  // mode="day": changes bitta kunga tegishli bo'lishi shart, shu kun oldindan tozalanadi.
+  // mode="all": butun hafta oldindan tozalanadi.
+  let clearDays = [];
+  if (mode === "all") {
+    clearDays = SCHEDULE_DAYS;
+  } else if (mode === "day") {
+    const days = [...new Set(norm.map((c) => c.day))];
+    if (days.length !== 1) {
+      throw new InputError('mode="day" bilan barcha changes bitta kunga tegishli bo\'lishi kerak');
+    }
+    clearDays = days;
+  }
+
   // Dars vaqtlari: har qator uchun start/end ixtiyoriy. Berilmagan maydon o'zgarmaydi, "" tozalaydi.
   const normTimes = [];
   for (const t of times) {
@@ -927,6 +952,11 @@ async function handleSetSchedule(a) {
   }
 
   const { cells } = await fetchSchedule();
+  // mode="day"/"all": clearDays'dagi kunlarning 8 ta dars katagi avval bo'shatiladi (vaqtlar tegilmaydi),
+  // shundan keyingina changes qo'llanadi.
+  for (const d of clearDays) {
+    for (let i = 1; i <= SCHEDULE_ROWS; i++) delete cells[`${d}_${i}`];
+  }
   for (const c of norm) {
     const k = `${c.day}_${c.lesson}`;
     if (c.text) cells[k] = c.text;
@@ -950,12 +980,16 @@ async function handleSetSchedule(a) {
   }
   await saveSchedule(cells);
 
-  const affected = SCHEDULE_DAYS.filter((d) => norm.some((c) => c.day === d));
+  const touchedDays = new Set([...clearDays, ...norm.map((c) => c.day)]);
+  const affected = SCHEDULE_DAYS.filter((d) => touchedDays.has(d));
   const parts = [];
-  if (affected.length) parts.push(`${affected.map((d) => DAY_NAMES_UZ[d]).join(", ")} o'zgartirildi. Boshqa kunlar o'zgarmadi`);
+  if (mode === "all") parts.push(`Butun hafta qaytadan yozildi (${affected.map((d) => DAY_NAMES_UZ[d]).join(", ")})`);
+  else if (mode === "day") parts.push(`${DAY_NAMES_UZ[clearDays[0]]} kuni qaytadan yozildi`);
+  else if (affected.length) parts.push(`${affected.map((d) => DAY_NAMES_UZ[d]).join(", ")} o'zgartirildi. Boshqa kunlar o'zgarmadi`);
   if (normTimes.length) parts.push(`${normTimes.map((t) => t.lesson).sort((x, y) => x - y).join(", ")}-dars vaqti o'zgartirildi (vaqtlar barcha kunlarga bir xil)`);
   const result = {
     ok: true,
+    mode,
     applied: norm.length + normTimes.length,
     message: parts.join(". ") + ".",
   };
