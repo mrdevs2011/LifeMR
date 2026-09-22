@@ -53,7 +53,29 @@ service cloud.firestore {
     match /checkins/{docId} {
       allow read: if isClaude();
       allow create: if isClaude() && isValidCheckin(request.resource.data);
-      // Log immutable: eski yozuvni hech kim o'zgartira yoki o'chira olmaydi.
+      // Yozuv matnini hech kim o'zgartira olmaydi. O'chirish mumkin — lekin faqat
+      // "delete_status" (sayt/mcp) orqali, va u yozuvni yo'q qilmaydi, /deleted ga ko'chiradi.
+      allow update: if false;
+      allow delete: if isClaude();
+    }
+
+    function isValidDeleted(data) {
+      return data.keys().hasOnly(['vaqt', 'holat', 'timestamp', 'deleted_at'])
+          && data.vaqt is string
+          && data.vaqt.size() > 0
+          && data.vaqt.size() < 30
+          && data.holat is string
+          && data.holat.size() > 0
+          && data.holat.size() < 500
+          && data.timestamp is timestamp
+          && data.deleted_at is timestamp;
+    }
+
+    // O'chirilgan yozuvlar: butunlay yo'qolmaydi, shu yerda saqlanadi. Hech kim (sayt ham,
+    // Claude ham) bu yerdan ham o'zgartira, ham butunlay o'chira olmaydi — faqat o'qiladi.
+    match /deleted/{docId} {
+      allow read: if isClaude();
+      allow create: if isClaude() && isValidDeleted(request.resource.data);
       allow update, delete: if false;
     }
 

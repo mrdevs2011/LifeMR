@@ -90,14 +90,14 @@ const TOOLS = [
   {
     name: "get_latest",
     title: "Latest check-in",
-    description: "Returns the single most recent check-in. Use at the start of a conversation for a quick status snapshot; use get_status when you need multiple entries or a full day.",
+    description: "Returns the single most recent check-in (with its id, for use with delete_status). Use at the start of a conversation for a quick status snapshot; use get_status when you need multiple entries or a full day.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     annotations: READONLY,
   },
   {
     name: "add_status",
     title: "Add check-in",
-    description: `Saves a new check-in with the current Tashkent time. Only call when the user explicitly asks to log something. Entries cannot be edited or deleted. Max ${MAX_HOLAT_LEN} chars.`,
+    description: `Saves a new check-in with the current Tashkent time. Only call when the user explicitly asks to log something. Entries cannot be edited, but can be deleted with delete_status (moved to trash, not destroyed). Max ${MAX_HOLAT_LEN} chars.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -111,7 +111,7 @@ const TOOLS = [
   {
     name: "get_status",
     title: "Get check-ins",
-    description: "Returns check-ins grouped by day. Filters: date, from/to range, days (last N days), time_from/time_to (HH:MM within each day), contains (text search), order (newest/oldest), limit.",
+    description: "Returns check-ins grouped by day, each with its id (for use with delete_status). Filters: date, from/to range, days (last N days), time_from/time_to (HH:MM within each day), contains (text search), order (newest/oldest), limit.",
     inputSchema: {
       type: "object",
       properties: {
@@ -194,6 +194,34 @@ const TOOLS = [
       additionalProperties: false,
     },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+  },
+  {
+    name: "delete_status",
+    title: "Delete check-in",
+    description: "Deletes one check-in by id (from get_status/get_latest). Not destroyed: moved to trash, visible with get_deleted. Only call when the user clearly asks to remove a specific entry.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "The check-in's id, as returned by get_status or get_latest." },
+      },
+      required: ["id"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
+  },
+  {
+    name: "get_deleted",
+    title: "Deleted check-ins (trash)",
+    description: "Returns check-ins the user has deleted, newest first, with when each was deleted. Nothing here is ever destroyed.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "integer", minimum: 1, maximum: MAX_LIMIT,
+                 description: `Max entries to return (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT}).` },
+      },
+      additionalProperties: false,
+    },
+    annotations: READONLY,
   },
 ];
 
@@ -420,7 +448,8 @@ function docToEntry(doc) {
   const fields = doc.fields || {};
   const p = parseVaqt(fields.vaqt?.stringValue || "");
   if (!p) return null;
-  return { ...p, holat: (fields.holat?.stringValue || "").slice(0, 500) };
+  const id = String(doc.name || "").split("/").pop();
+  return { ...p, id, holat: (fields.holat?.stringValue || "").slice(0, 500) };
 }
 
 async function fetchLatest() {
@@ -429,7 +458,7 @@ async function fetchLatest() {
   if (!doc) return null;
   const e = docToEntry(doc);
   if (!e) return null;
-  return { date: e.date, weekday: e.dayKey.slice(10), vaqt: e.time, holat: e.holat };
+  return { id: e.id, date: e.date, weekday: e.dayKey.slice(10), vaqt: e.time, holat: e.holat };
 }
 
 // Firestore'ni timestamp desc bo'yicha sahifalab o'qiydi va kerakli ma'lumot
@@ -462,7 +491,7 @@ async function fetchRange(f) {
         groups.set(e.dayKey, []);
       }
       if (count >= f.limit) { capped = true; break outer; }
-      groups.get(e.dayKey).push({ vaqt: e.time, holat: e.holat });
+      groups.get(e.dayKey).push({ id: e.id, vaqt: e.time, holat: e.holat });
       count++;
     }
 
@@ -501,6 +530,68 @@ async function createCheckin(holat) {
     throw new Error(`Yozib bo'lmadi: HTTP ${r.status} ${t.slice(0, 200)}`);
   }
   return { vaqt, holat };
+}
+
+// Doc'ni butunlay o'chirmaydi: checkins'dan "deleted" collection'ga ko'chiradi (bir commit'da).
+const DOCS_FULL = `projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+
+async function deleteCheckin(id) {
+  const got = await authFetch(`${BASE_DOCS_URL}/checkins/${id}?key=${FIREBASE_API_KEY}`, { cache: "no-store" });
+  if (got.status === 404) throw new InputError("Bunday id topilmadi (allaqachon o'chirilgan bo'lishi mumkin).");
+  if (!got.ok) throw new Error(`Firestore o'qish xatosi: HTTP ${got.status}`);
+  const doc = await got.json();
+  const fields = doc.fields || {};
+  const entry = docToEntry(doc);
+
+  const commit = await authFetch(`${BASE_DOCS_URL}:commit?key=${FIREBASE_API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      writes: [
+        {
+          update: {
+            name: `${DOCS_FULL}/deleted/${id}`,
+            fields: {
+              vaqt: fields.vaqt || { stringValue: "" },
+              holat: fields.holat || { stringValue: "" },
+              timestamp: fields.timestamp || { timestampValue: new Date().toISOString() },
+              deleted_at: { timestampValue: new Date().toISOString() },
+            },
+          },
+        },
+        { delete: `${DOCS_FULL}/checkins/${id}` },
+      ],
+    }),
+  });
+  if (!commit.ok) {
+    const t = await commit.text().catch(() => "");
+    throw new Error(`O'chirib bo'lmadi: HTTP ${commit.status} ${t.slice(0, 200)}`);
+  }
+  return { id, vaqt: entry?.time, holat: entry?.holat };
+}
+
+async function firestoreListDeletedPage(pageSize, pageToken) {
+  let url =
+    `${BASE_DOCS_URL}/deleted?key=${FIREBASE_API_KEY}` +
+    `&orderBy=deleted_at%20desc&pageSize=${pageSize}`;
+  if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
+  const r = await authFetch(url, { cache: "no-store" });
+  if (r.status === 403) throw new Error("Firestore ruxsat bermadi (rules'dagi CLAUDE_UID to'g'rimi?)");
+  if (!r.ok) throw new Error(`Firestore xatosi: HTTP ${r.status}`);
+  return r.json();
+}
+
+async function fetchDeleted(limit) {
+  const data = await firestoreListDeletedPage(limit, null);
+  return (data.documents || []).slice(0, limit).map((doc) => {
+    const fields = doc.fields || {};
+    return {
+      id: String(doc.name || "").split("/").pop(),
+      vaqt: fields.vaqt?.stringValue || "",
+      holat: (fields.holat?.stringValue || "").slice(0, 500),
+      deleted_at: fields.deleted_at?.timestampValue || null,
+    };
+  });
 }
 
 // ============================================================================
@@ -643,6 +734,19 @@ async function handleGetStats(a) {
     truncated,
     ...computeStats(groups),
   });
+}
+
+async function handleDeleteStatus(a) {
+  const id = typeof a.id === "string" ? a.id.trim() : "";
+  if (!id) throw new InputError("id is required");
+  const removed = await deleteCheckin(id);
+  return textResult({ ok: true, deleted: removed });
+}
+
+async function handleGetDeleted(a) {
+  const limit = clampInt(a.limit, 1, MAX_LIMIT, DEFAULT_LIMIT);
+  const items = await fetchDeleted(limit);
+  return textResult({ now: nowTashkent(), count: items.length, deleted: items });
 }
 
 // ---- Dars jadvali ----
@@ -866,6 +970,8 @@ const TOOL_HANDLERS = {
   add_status: (a) => handleAddStatus(a),
   get_status: (a) => handleGetStatus(a),
   get_stats: (a) => handleGetStats(a),
+  delete_status: (a) => handleDeleteStatus(a),
+  get_deleted: (a) => handleGetDeleted(a),
   get_schedule: (a) => handleGetSchedule(a),
   set_schedule: (a) => handleSetSchedule(a),
 };

@@ -1,6 +1,6 @@
-// api/checkins.js: sayt yozuvlarini o'qish/yozish. Faqat sessiya cookie bilan.
+// api/checkins.js: sayt yozuvlarini o'qish/yozish/o'chirish. Faqat sessiya cookie bilan.
 // Server Firestore'ga Claude akkaunti bilan boradi (rules faqat shu UID'ga ruxsat beradi).
-import { REST, fsFetch, key, requireSession, readJson, send, sessionCookie } from "./_lib.js";
+import { REST, DOCS_PATH, fsFetch, key, requireSession, readJson, send, sessionCookie } from "./_lib.js";
 
 const LIMIT = 300;
 
@@ -30,12 +30,16 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === "GET") {
+      const url = new URL(req.url, "http://x");
+      const wantDeleted = url.searchParams.get("deleted") === "1";
+      const collectionId = wantDeleted ? "deleted" : "checkins";
+      const orderField = wantDeleted ? "deleted_at" : "timestamp";
       const r = await fsFetch(`${REST}:runQuery?${key()}`, {
         method: "POST",
         body: JSON.stringify({
           structuredQuery: {
-            from: [{ collectionId: "checkins" }],
-            orderBy: [{ field: { fieldPath: "timestamp" }, direction: "DESCENDING" }],
+            from: [{ collectionId }],
+            orderBy: [{ field: { fieldPath: orderField }, direction: "DESCENDING" }],
             limit: LIMIT,
           },
         }),
@@ -45,9 +49,11 @@ export default async function handler(req, res) {
       const items = (Array.isArray(rows) ? rows : [])
         .filter((x) => x.document)
         .map((x) => ({
+          id: String(x.document.name || "").split("/").pop(),
           vaqt: x.document.fields?.vaqt?.stringValue || "",
           holat: x.document.fields?.holat?.stringValue || "",
           ts: x.document.fields?.timestamp?.timestampValue || null,
+          deletedAt: x.document.fields?.deleted_at?.timestampValue || null,
         }));
       return send(res, 200, { items });
     }
@@ -71,8 +77,42 @@ export default async function handler(req, res) {
       return send(res, 200, { ok: true, vaqt });
     }
 
-    res.setHeader("Allow", "GET, POST");
-    return send(res, 405, { error: "Faqat GET/POST" });
+    if (req.method === "DELETE") {
+      const body = await readJson(req).catch(() => ({}));
+      const id = typeof body?.id === "string" ? body.id.trim() : "";
+      if (!id || !/^[A-Za-z0-9_-]{1,64}$/.test(id)) return send(res, 400, { error: "id noto'g'ri" });
+
+      const got = await fsFetch(`${REST}/checkins/${id}?${key()}`);
+      if (got.status === 404) return send(res, 404, { error: "topilmadi (allaqachon o'chirilgan bo'lishi mumkin)" });
+      if (!got.ok) return send(res, 502, { error: `Firestore o'qish xatosi (${got.status})` });
+      const doc = await got.json();
+      const fields = doc.fields || {};
+
+      const commit = await fsFetch(`${REST}:commit?${key()}`, {
+        method: "POST",
+        body: JSON.stringify({
+          writes: [
+            {
+              update: {
+                name: `${DOCS_PATH}/deleted/${id}`,
+                fields: {
+                  vaqt: fields.vaqt || { stringValue: "" },
+                  holat: fields.holat || { stringValue: "" },
+                  timestamp: fields.timestamp || { timestampValue: new Date().toISOString() },
+                  deleted_at: { timestampValue: new Date().toISOString() },
+                },
+              },
+            },
+            { delete: `${DOCS_PATH}/checkins/${id}` },
+          ],
+        }),
+      });
+      if (!commit.ok) return send(res, 502, { error: `Firestore o'chirish xatosi (${commit.status})` });
+      return send(res, 200, { ok: true, id });
+    }
+
+    res.setHeader("Allow", "GET, POST, DELETE");
+    return send(res, 405, { error: "Faqat GET/POST/DELETE" });
   } catch (e) {
     return send(res, 502, { error: String(e.message || e).slice(0, 200) });
   }

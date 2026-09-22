@@ -263,12 +263,44 @@
 
   .entry {
     display: flex;
+    align-items: baseline;
     gap: 10px;
-    padding: 4px 0 4px 10px;
+    padding: 4px 26px 4px 10px;
     border-left: 2px solid var(--border);
     margin-left: 3px;
     font-size: .78rem;
     line-height: 1.4;
+    position: relative;
+  }
+
+  .entry-del {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    line-height: 16px;
+    text-align: center;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-faint);
+    font-size: .85rem;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .12s ease, background-color .12s ease, color .12s ease;
+  }
+  .entry:hover .entry-del, .entry-del:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .entry-del:hover { background: var(--red); color: #fff; }
+  .entry-del[disabled] { pointer-events: none; opacity: .5; }
+  /* teginish bilan boshqariladigan qurilmada hover yo'q, shuning uchun doim ko'rinsin */
+  @media (hover: none) {
+    .entry-del { opacity: .55; pointer-events: auto; }
   }
 
   .ts {
@@ -680,6 +712,44 @@
 
 <script type="module">
   const logEl = document.getElementById('log');
+
+  // Statusni o'chirish (× tugma): butunlay yo'q bo'lmaydi, /deleted collection'ga ko'chadi.
+  logEl.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.entry-del');
+    if (!btn || btn.disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const entryEl = btn.closest('.entry');
+    const dayEl = btn.closest('.day');
+    const id = entryEl?.dataset.id;
+    if (!id) return;
+    btn.disabled = true;
+    entryEl.style.opacity = '.35';
+    try {
+      const { r, data } = await api('/api/checkins', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (r.status === 401) { showGate('session ended, sign in again', 'err'); return; }
+      if (!r.ok) throw new Error(data?.error || r.status);
+      entryEl.remove();
+      if (dayEl) {
+        const left = dayEl.querySelectorAll('.entry').length;
+        if (left === 0) {
+          dayEl.remove();
+        } else {
+          const countEl = dayEl.querySelector('.day-count');
+          if (countEl) countEl.textContent = `${left} status${left === 1 ? '' : 'es'}`;
+        }
+      }
+      if (!logEl.querySelector('.day')) logEl.innerHTML = `<div class="state">${t('noEntries')}</div>`;
+    } catch (err) {
+      entryEl.style.opacity = '';
+      btn.disabled = false;
+      alert('delete failed: ' + (err.message || err));
+    }
+  });
   const formEl = document.getElementById('statusForm');
   const inputEl = document.getElementById('holatInput');
   const btnEl = document.getElementById('submitBtn');
@@ -1107,13 +1177,13 @@
     }
 
     // 1) yozuvlarni sana bo'yicha guruhlaymiz
-    const kunlar = new Map(); // sana -> [{soat, holat}]
+    const kunlar = new Map(); // sana -> [{soat, holat, id}]
     for (const d of docs) {
       const f = d.data();
       const vaqt = f.vaqt || '';
       const [sana, soat] = vaqt.includes(' ') ? vaqt.split(' ') : [vaqt, ''];
       if (!kunlar.has(sana)) kunlar.set(sana, []);
-      kunlar.get(sana).push({ soat, holat: f.holat || '' });
+      kunlar.get(sana).push({ soat, holat: f.holat || '', id: f.id || '' });
     }
 
     // 2) har bir kun uchun yopiq qator + ichida (yashirin) yozuvlar ro'yxati
@@ -1127,7 +1197,7 @@
       html += `</div>`;
       html += `<div class="day-entries">`;
       for (const y of yozuvlar) {
-        html += `<div class="entry"><div class="ts">${esc(y.soat)}</div><div class="holat">${renderTags(y.holat)}</div></div>`;
+        html += `<div class="entry" data-id="${esc(y.id)}"><div class="ts">${esc(y.soat)}</div><div class="holat">${renderTags(y.holat)}</div><button type="button" class="entry-del" title="delete" aria-label="delete">×</button></div>`;
       }
       html += `</div></div>`;
     }
@@ -1431,7 +1501,7 @@
 
   // Server yozuvlarini eski render() kutgan shaklga o'giramiz
   const asDocs = (items) => items.map(x => ({
-    data: () => ({ vaqt: x.vaqt, holat: x.holat, timestamp: { toDate: () => new Date(x.ts || Date.now()) } })
+    data: () => ({ id: x.id, vaqt: x.vaqt, holat: x.holat, timestamp: { toDate: () => new Date(x.ts || Date.now()) } })
   }));
 
   async function loadLog() {
