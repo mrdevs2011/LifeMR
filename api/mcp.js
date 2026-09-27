@@ -1090,13 +1090,14 @@ export default async function handler(req, res) {
     return send(res, 500, { error: "FS_KEY sozlanmagan" });
   }
 
-  // ?k= faqat Vercel env MCP_TOKEN bilan solishtiriladi. Token paroldan mustaqil va maxfiy.
-  // (Eski hash rejimi olib tashlandi: u himoyasiz edi.)
+  // Auth: Authorization: Bearer <MCP_TOKEN> preferred; ?k= secondary for URL-only MCP clients.
   const envToken = process.env.MCP_TOKEN;
   if (!envToken) return send(res, 500, { error: "MCP_TOKEN sozlanmagan" });
 
   const url = new URL(req.url, "http://localhost");
-  const candidate = url.searchParams.get("k") || "";
+  const auth = req.headers["authorization"] || "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  const candidate = bearer || url.searchParams.get("k") || "";
   if (!safeEqual(candidate, envToken)) return send(res, 401, { error: "unauthorized" });
 
   if (req.method !== "POST") {
